@@ -1,0 +1,102 @@
+# MDM Knowledge Hub — full stack for a long-running host (VM / container service).
+# Local dev without Docker is also supported; see README.md.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: mdm
+      POSTGRES_USER: mdm
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mdm_secret}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mdm -d mdm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  api:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: mdm
+      DB_USERNAME: mdm
+      DB_PASSWORD: ${DB_PASSWORD:-mdm_secret}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+      EMBEDDINGS_DRIVER: ${EMBEDDINGS_DRIVER:-voyage}   # voyage | sidecar
+      EMBEDDINGS_SIDECAR_URL: http://embeddings:8001
+    volumes:
+      - ./kb:/var/www/html/kb            # knowledge base (git-backed) mounted into the app
+    expose:
+      - "8000"
+
+  worker:
+    build: ./api
+    command: php artisan queue:work --tries=3 --timeout=300
+    depends_on:
+      - api
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_DATABASE: mdm
+      DB_USERNAME: mdm
+      DB_PASSWORD: ${DB_PASSWORD:-mdm_secret}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+    volumes:
+      - ./kb:/var/www/html/kb
+
+  scheduler:
+    build: ./api
+    command: sh -c "while true; do php artisan schedule:run; sleep 60; done"
+    depends_on:
+      - api
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_DATABASE: mdm
+      DB_USERNAME: mdm
+      DB_PASSWORD: ${DB_PASSWORD:-mdm_secret}
+    volumes:
+      - ./kb:/var/www/html/kb
+
+  web:
+    build: ./web
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+    expose:
+      - "3000"
+
+  # Optional local embedding model (set EMBEDDINGS_DRIVER=sidecar to use).
+  embeddings:
+    build: ./embeddings
+    profiles: ["sidecar"]
+    expose:
+      - "8001"
+
+  proxy:
+    image: caddy:2
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+
+volumes:
+  db_data:
+  caddy_data:

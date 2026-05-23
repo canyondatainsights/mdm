@@ -1,0 +1,48 @@
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ---- Laravel (api/) ----
+/api/vendor/
+/api/node_modules/
+/api/.env
+/api/.env.backup
+/api/storage/*.key
+/api/storage/framework/cache/data/*
+/api/storage/framework/sessions/*
+/api/storage/framework/views/*
+/api/storage/logs/*
+/api/bootstrap/cache/*.php
+/api/public/storage
+/api/.phpunit.result.cache
+/api/Homestead.json
+/api/Homestead.yaml
+/api/auth.json
+
+# ---- Next.js (web/) ----
+/web/node_modules/
+/web/.next/
+/web/out/
+/web/build/
+/web/.env*.local
+/web/.env
+/web/next-env.d.ts
+/web/.vercel
+
+# ---- Python embeddings sidecar ----
+/embeddings/__pycache__/
+/embeddings/.venv/
+/embeddings/venv/
+*.pyc
+
+# ---- Knowledge base: generated / transient ----
+/kb/output/qa-log/*
+!/kb/output/qa-log/.gitkeep
+/kb/output/exports/
+
+# ---- secrets / local ----
+.env
+*.local
