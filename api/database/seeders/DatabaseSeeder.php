@@ -3,23 +3,39 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        foreach (['Admin', 'Steward', 'Contributor', 'Viewer'] as $role) {
+            Role::findOrCreate($role, 'web');
+        }
+
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@canyondatainsights.com'],
+            [
+                'name' => 'Admin',
+                'title' => 'Data Architect',
+                'password' => Hash::make('password'),
+            ],
+        );
+        $admin->syncRoles(['Admin']);
+
+        $steward = User::updateOrCreate(
+            ['email' => 'steward@canyondatainsights.com'],
+            [
+                'name' => 'Amelia Voss',
+                'title' => 'Data Steward · EMEA',
+                'password' => Hash::make('password'),
+            ],
+        );
+        $steward->syncRoles(['Steward']);
     }
 }
