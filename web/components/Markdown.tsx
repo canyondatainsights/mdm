@@ -79,15 +79,19 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
     // GFM table: a row line followed by a |---|---| separator
     if (line.includes("|") && isTableSep(lines[i + 1])) {
       const header = cells(line);
+      const cols = header.length;
       i += 2;
       const rows: string[][] = [];
       while (i < lines.length && lines[i].includes("|") && lines[i].trim() !== "") {
-        rows.push(cells(lines[i]));
+        const r = cells(lines[i]);
+        // Normalize ragged rows to the header width so columns never shift.
+        rows.push(r.length === cols ? r : r.length < cols ? [...r, ...Array(cols - r.length).fill("")] : r.slice(0, cols));
         i++;
       }
       out.push(
         <div key={key++} style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+          {/* Wide tables (mappings) get a min width so columns aren't crammed; the wrapper scrolls. */}
+          <table style={{ borderCollapse: "collapse", width: "100%", minWidth: cols > 4 ? cols * 132 : undefined, fontSize: 13 }}>
             <thead>
               <tr>
                 {header.map((c, k) => (
