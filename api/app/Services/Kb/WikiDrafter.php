@@ -15,8 +15,12 @@ class WikiDrafter
 {
     public function __construct(private SettingsService $settings) {}
 
-    /** @param  array<string,?string>  $meta  mdm_vendor/data_platform/product/domain/financial_model */
-    public function draft(string $title, array $meta = [], ?string $instructions = null): string
+    /**
+     * @param  array<string,?string>  $meta  mdm_vendor/data_platform/product/domain/financial_model
+     * @param  ?string  $sourceText  when given (e.g. a fetched web page), the model rewrites/structures
+     *                               it into a clean page instead of generating from scratch.
+     */
+    public function draft(string $title, array $meta = [], ?string $instructions = null, ?string $sourceText = null): string
     {
         $key = $this->settings->anthropicKey();
         if (! $key) {
@@ -51,11 +55,18 @@ class WikiDrafter
         if (filled($instructions)) {
             $prompt .= "\nAuthor instructions: {$instructions}\n";
         }
-        $prompt .= "\nWrite the wiki page body now.";
+        if (filled($sourceText)) {
+            $src = mb_substr(trim($sourceText), 0, 12000);
+            $prompt .= "\nSOURCE CONTENT fetched from a web page — rewrite it into the wiki page, preserving the"
+                ." facts and technical detail, trimming navigation/boilerplate, and not inventing anything:\n"
+                ."\"\"\"\n{$src}\n\"\"\"\n\nRewrite the source above into the wiki page body now.";
+        } else {
+            $prompt .= "\nWrite the wiki page body now.";
+        }
 
         $resp = Prism::text()
             ->using(Provider::Anthropic, $this->settings->anthropicModel(), ['api_key' => $key])
-            ->withMaxTokens(2200)
+            ->withMaxTokens(filled($sourceText) ? 3000 : 2200)
             ->withSystemPrompt($system)
             ->withPrompt($prompt)
             ->asText();

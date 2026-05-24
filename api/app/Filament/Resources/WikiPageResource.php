@@ -119,6 +119,65 @@ class WikiPageResource extends Resource
                             Notification::make()->title('Draft inserted — review before saving')->success()->send();
                         }),
                 )
+                ->hintAction(
+                    Actions\Action::make('importUrl')
+                        ->label('Import from URL')
+                        ->icon('heroicon-m-globe-alt')
+                        ->modalHeading('Create from a web page')
+                        ->modalDescription('Fetches the page’s readable content into the editor (appended to any existing content). Review and edit before saving.')
+                        ->modalSubmitActionLabel('Fetch')
+                        ->form([
+                            Forms\Components\TextInput::make('url')
+                                ->label('Content URL')
+                                ->url()
+                                ->required()
+                                ->placeholder('https://…'),
+                            Forms\Components\Toggle::make('structure')
+                                ->label('Clean up & structure with AI')
+                                ->default(true)
+                                ->helperText('Rewrite the fetched page into a tidy wiki page (recommended). Off = raw extracted text.'),
+                        ])
+                        ->action(function (array $data, Get $get, Set $set) {
+                            $url = trim((string) ($data['url'] ?? ''));
+                            if ($url === '') {
+                                return;
+                            }
+                            try {
+                                $fetched = app(\App\Services\Kb\UrlFetcher::class)->fetch($url);
+                            } catch (\Throwable $e) {
+                                Notification::make()->title('Fetch failed')->body($e->getMessage())->danger()->send();
+
+                                return;
+                            }
+                            // Seed the title from the page if the form's title is still empty.
+                            $title = trim((string) $get('title'));
+                            if ($title === '' && filled($fetched['title'])) {
+                                $title = $fetched['title'];
+                                $set('title', $title);
+                            }
+                            $body = $fetched['text'];
+                            if (! empty($data['structure'])) {
+                                try {
+                                    $body = app(WikiDrafter::class)->draft($title ?: $fetched['title'], [
+                                        'mdm_vendor' => $get('mdm_vendor'),
+                                        'data_platform' => $get('data_platform'),
+                                        'product' => $get('product'),
+                                        'domain' => $get('domain'),
+                                        'financial_model' => $get('financial_model'),
+                                    ], null, $fetched['text']);
+                                } catch (\Throwable $e) {
+                                    Notification::make()->title('AI structuring failed — inserted raw text')->body($e->getMessage())->warning()->send();
+                                }
+                            }
+                            // Provenance footer (renders as a link in the reader).
+                            $host = parse_url($url, PHP_URL_HOST) ?: 'source';
+                            $body = trim($body)."\n\n*Source: [{$host}]({$url})*";
+
+                            $existing = trim((string) $get('content'));
+                            $set('content', $existing ? $existing."\n\n".$body : $body);
+                            Notification::make()->title('Imported — review before saving')->success()->send();
+                        }),
+                )
                 ->columnSpanFull(),
             Forms\Components\Select::make('mdm_vendor')->label('Vendor')->options($opts('mdm_vendor'))->nullable(),
             Forms\Components\TextInput::make('product')->nullable(),
