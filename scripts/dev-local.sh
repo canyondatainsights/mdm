@@ -51,6 +51,12 @@ pkill -f "artisan queue:work" 2>/dev/null || true
 log "starting queue worker (self-healing)"
 ( cd "$ROOT/api" && PHP_BIN="$PHP" nohup bash -c 'while true; do "$PHP_BIN" -d memory_limit=2048M artisan queue:work --tries=1 --timeout=600 >>/tmp/mdm-worker.log 2>&1; sleep 1; done' >/dev/null 2>&1 & )
 
+# 4b. Scheduler — self-healing loop so scheduled crawlers (crawlers:run-scheduled) fire locally.
+#     In prod this is a system cron running `schedule:run` every minute.
+pkill -f "artisan schedule:run" 2>/dev/null || true
+log "starting scheduler (self-healing)"
+( cd "$ROOT/api" && PHP_BIN="$PHP" nohup bash -c 'while true; do "$PHP_BIN" artisan schedule:run >>/tmp/mdm-scheduler.log 2>&1; sleep 60; done' >/dev/null 2>&1 & )
+
 # 5. Web
 free_port 3000
 log "starting web :3000"
@@ -58,4 +64,4 @@ log "starting web :3000"
 
 sleep 2
 log "up — app: http://localhost:3000   admin: http://localhost:8011/admin"
-log "logs: /tmp/mdm-{sidecar,serve-8011,worker,web-dev}.log"
+log "logs: /tmp/mdm-{sidecar,serve-8011,worker,scheduler,web-dev}.log"

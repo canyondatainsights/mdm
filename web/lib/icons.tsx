@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Copy, Database, Download,
+  ArrowUp, BookMarked, BookOpen, Check, ChevronDown, ChevronRight, Copy, Database, Download,
   ExternalLink, FileText, SlidersHorizontal, Workflow, Globe, History, Link2,
   MoreHorizontal, Network, PanelLeft, PanelRight, Paperclip, Pin, Plus,
   RotateCw, Search, Send, Settings, Shield, Sparkles, Square, Tag, ThumbsDown,
@@ -11,7 +11,7 @@ import {
 // Design handoff icon name -> Lucide component.
 const MAP: Record<string, LucideIcon> = {
   search: Search, plus: Plus, send: Send, paperclip: Paperclip, sparkle: Sparkles,
-  book: BookOpen, doc: FileText, pin: Pin, panel: PanelRight, sidebar: PanelLeft,
+  book: BookOpen, wiki: BookMarked, doc: FileText, pin: Pin, panel: PanelRight, sidebar: PanelLeft,
   "chevron-down": ChevronDown, "chevron-right": ChevronRight, check: Check, copy: Copy,
   thumbsup: ThumbsUp, thumbsdown: ThumbsDown, refresh: RotateCw, filter: SlidersHorizontal,
   tag: Tag, shield: Shield, link: Link2, external: ExternalLink, database: Database,

@@ -46,7 +46,7 @@ class TaxonomyFetchProducts extends Command
 
         try {
             $resp = Prism::text()
-                ->using(Provider::Anthropic, config('mdm.anthropic.model'), ['api_key' => $key])
+                ->using(Provider::Anthropic, $settings->anthropicModel(), ['api_key' => $key])
                 ->withMaxTokens(700)
                 ->withSystemPrompt($system)
                 ->withPrompt($prompt)

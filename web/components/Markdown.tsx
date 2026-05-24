@@ -1,6 +1,12 @@
 "use client";
 
+import { apiOrigin } from "@/lib/api";
 import { Fragment, type ReactNode } from "react";
+
+/** Resolve a root-relative URL (e.g. an embedded /media/wiki image) against the API host. */
+const resolveUrl = (u: string) => (u.startsWith("/") ? apiOrigin + u : u);
+
+const isImageOnly = (l?: string) => !!l && /^\s*!\[[^\]]*\]\([^)]+\)\s*$/.test(l);
 
 function CitationChip({ n, onCite }: { n: number; onCite?: (n: number) => void }) {
   return (
@@ -20,10 +26,17 @@ function CitationChip({ n, onCite }: { n: number; onCite?: (n: number) => void }
   );
 }
 
-/** Inline: **bold**, `code`, and [n] citation chips. */
+/** Inline: ![img](url), [link](url), **bold**, `code`, and [n] citation chips. */
 function inline(text: string, onCite?: (n: number) => void): ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[\d+\])/g);
+  // Order matters: image (leading !) before link, link before the bare [n] citation.
+  const parts = text.split(/(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|\[\d+\])/g);
   return parts.map((p, i) => {
+    const img = p.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (img)
+      return <img key={i} src={resolveUrl(img[2])} alt={img[1]} style={{ maxWidth: "100%", borderRadius: 6, verticalAlign: "middle" }} />;
+    const link = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (link)
+      return <a key={i} href={resolveUrl(link[2])} target="_blank" rel="noopener noreferrer" className="hov-link" style={{ color: "var(--accent-2)", textDecoration: "underline" }}>{link[1]}</a>;
     if (/^\*\*[^*]+\*\*$/.test(p))
       return <strong key={i} style={{ fontWeight: 600, color: "var(--fg)" }}>{p.slice(2, -2)}</strong>;
     if (/^`[^`]+`$/.test(p))
@@ -71,6 +84,19 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
         <div key={key++} style={{ fontSize: lvl <= 2 ? 15 : 14, fontWeight: 600, color: "var(--fg)", marginTop: 2 }}>
           {inline(h[2], onCite)}
         </div>,
+      );
+      i++;
+      continue;
+    }
+
+    // Standalone image (e.g. an embedded diagram) → block figure with optional caption.
+    const imgOnly = line.match(/^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$/);
+    if (imgOnly) {
+      out.push(
+        <figure key={key++} style={{ margin: 0 }}>
+          <img src={resolveUrl(imgOnly[2])} alt={imgOnly[1]} style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid var(--border)", display: "block" }} />
+          {imgOnly[1] && <figcaption style={{ fontSize: 11.5, color: "var(--fg-4)", marginTop: 5 }}>{imgOnly[1]}</figcaption>}
+        </figure>,
       );
       i++;
       continue;
@@ -142,7 +168,7 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
     const para: string[] = [];
     while (
       i < lines.length && lines[i].trim() !== "" &&
-      !isHeading(lines[i]) && !isBullet(lines[i]) && !isOrdered(lines[i]) &&
+      !isHeading(lines[i]) && !isBullet(lines[i]) && !isOrdered(lines[i]) && !isImageOnly(lines[i]) &&
       !/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i]) &&
       !(lines[i].includes("|") && isTableSep(lines[i + 1]))
     ) {

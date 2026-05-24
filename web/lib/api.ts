@@ -7,10 +7,15 @@ import type {
   SourceListItem,
   StreamEvent,
   User,
+  WikiPageDetail,
+  WikiPageSummary,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 const TOKEN_KEY = "mdm_token";
+
+/** API host root (BASE without the trailing /api) — used to resolve root-relative media URLs. */
+export const apiOrigin = BASE.replace(/\/api\/?$/, "");
 
 export const auth = {
   token: (): string | null => (typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY)),
@@ -63,6 +68,10 @@ export const api = {
   // sources
   sources: () => req<{ count: number; sources: SourceListItem[] }>("/sources"),
   source: (path: string) => req<SourceDetail>(`/sources/${path}`),
+
+  // wiki (browse curated knowledge)
+  wikiPages: () => req<{ count: number; pages: WikiPageSummary[] }>("/wiki"),
+  wikiPage: (path: string) => req<WikiPageDetail>(`/wiki/${path}`),
   classifyUploads: (form: FormData) =>
     req<import("./types").ClassifyResult>("/uploads/classify", { method: "POST", body: form }),
   upload: (form: FormData) =>

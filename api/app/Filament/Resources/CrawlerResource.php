@@ -61,6 +61,11 @@ class CrawlerResource extends Resource
                 ->itemLabel(fn (array $state): ?string => $state['section'] ?? null)
                 ->columnSpanFull(),
             Forms\Components\Toggle::make('active')->default(true),
+            Forms\Components\Select::make('schedule')
+                ->options(['off' => 'Off (manual only)', 'daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly'])
+                ->default('off')
+                ->required()
+                ->helperText('Automated refresh cadence. Runs via crawlers:run-scheduled (the scheduler picks up due crawlers).'),
             Forms\Components\Textarea::make('notes')->rows(2)->columnSpanFull(),
         ]);
     }
@@ -74,6 +79,9 @@ class CrawlerResource extends Resource
                 Tables\Columns\TextColumn::make('platform')->badge(),
                 Tables\Columns\TextColumn::make('sections')->label('Sections')->state(fn (Crawler $r) => count($r->sections ?? [])),
                 Tables\Columns\IconColumn::make('active')->boolean(),
+                Tables\Columns\TextColumn::make('schedule')->badge()
+                    ->color(fn (?string $state) => $state === 'off' || $state === null ? 'gray' : 'success'),
+                Tables\Columns\TextColumn::make('last_run_at')->label('Last run')->since()->placeholder('never')->sortable(),
             ])
             ->recordActions([
                 Actions\Action::make('run')

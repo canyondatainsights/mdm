@@ -25,32 +25,66 @@ class WikiPageResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return true;
+    }
+
+    /** Existing wiki section directories (kb/wiki/*), for the section picker. */
+    public static function sectionOptions(): array
+    {
+        $root = rtrim(config('mdm.kb_path'), '/').'/wiki';
+        $dirs = is_dir($root) ? array_map('basename', glob($root.'/*', GLOB_ONLYDIR) ?: []) : [];
+        if (empty($dirs)) {
+            $dirs = ['01-foundations', '02-informatica-mdm', '03-data-quality', '04-pipelines-medallion',
+                '05-snowflake', '06-databricks', '07-governance-consent', '08-patterns-playbooks', '09-decisions-adrs'];
+        }
+        sort($dirs);
+
+        return array_combine($dirs, $dirs);
     }
 
     public static function form(Schema $schema): Schema
     {
+        $opts = fn (string $type) => collect(\App\Services\Taxonomy\Taxonomy::values($type))->mapWithKeys(fn ($v) => [$v => $v])->toArray();
+
         return $schema->schema([
+            Forms\Components\Placeholder::make('_explainer')
+                ->hiddenLabel()
+                ->content(new \Illuminate\Support\HtmlString(
+                    '<div style="padding:.6rem .8rem;border-left:3px solid #2447d6;background:#eef2ff;border-radius:.4rem;font-size:.85rem;line-height:1.5;color:#1e2a52;">'
+                    .'<strong>What is a wiki page?</strong> Curated, authored knowledge — the answers you want the assistant to give. '
+                    .'Saving writes a Markdown file under <code>kb/wiki/&lt;section&gt;/</code>, chunks + embeds it, and makes it '
+                    .'<em>immediately retrievable</em> in chat. Unlike uploaded sources (which await steward approval), wiki pages '
+                    .'are first-class, version-controlled answers you maintain.</div>'
+                ))
+                ->visibleOn(['create', 'edit'])
+                ->columnSpanFull(),
             Forms\Components\TextInput::make('title')
                 ->required()
-                ->maxLength(255),
+                ->maxLength(255)
+                ->columnSpanFull(),
+            Forms\Components\Select::make('section')
+                ->options(fn () => static::sectionOptions())
+                ->required()
+                ->searchable()
+                ->disabledOn('edit')
+                ->helperText('The page is filed under kb/wiki/<section>/. Cannot be moved after creation.'),
             Forms\Components\TextInput::make('path')
                 ->disabled()
-                ->maxLength(255),
-            Forms\Components\TextInput::make('section')
-                ->disabled(),
-            Forms\Components\Select::make('mdm_vendor')
-                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
-                ->nullable(),
-            Forms\Components\Select::make('data_platform')
-                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
-                ->nullable(),
-            Forms\Components\Select::make('financial_model')
-                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('financial_model'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
-                ->nullable(),
-            Forms\Components\Select::make('domain')
-                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
-                ->nullable(),
+                ->dehydrated(false)
+                ->hiddenOn('create'),
+            Forms\Components\MarkdownEditor::make('content')
+                ->label('Content (Markdown)')
+                ->required()
+                ->fileAttachmentsDisk('kb_media')
+                ->fileAttachmentsVisibility('public')
+                ->helperText('Markdown body. Use the image button to embed diagrams — they are stored with the page. A leading "# Title" and a revision-log table are added automatically if absent.')
+                ->columnSpanFull(),
+            Forms\Components\Select::make('mdm_vendor')->label('Vendor')->options($opts('mdm_vendor'))->nullable(),
+            Forms\Components\TextInput::make('product')->nullable(),
+            Forms\Components\Select::make('data_platform')->label('Platform')->options($opts('data_platform'))->nullable(),
+            Forms\Components\TextInput::make('product_version')->label('Version')->nullable(),
+            Forms\Components\Select::make('domain')->options($opts('domain'))->nullable(),
+            Forms\Components\Select::make('financial_model')->label('Financial model')->options($opts('financial_model'))->nullable(),
             Forms\Components\Select::make('scope')
                 ->options(['neutral' => 'Neutral', 'vendor-specific' => 'Vendor-specific'])
                 ->nullable(),
@@ -98,6 +132,7 @@ class WikiPageResource extends Resource
                     ->options(['neutral' => 'Neutral', 'vendor-specific' => 'Vendor-specific']),
             ])
             ->recordActions([
+                Actions\ViewAction::make(),
                 Actions\EditAction::make(),
             ])
             ->toolbarActions([
@@ -135,6 +170,8 @@ class WikiPageResource extends Resource
     {
         return [
             'index' => Pages\ListWikiPages::route('/'),
+            'create' => Pages\CreateWikiPage::route('/create'),
+            'view' => Pages\ViewWikiPage::route('/{record}'),
             'edit' => Pages\EditWikiPage::route('/{record}/edit'),
         ];
     }

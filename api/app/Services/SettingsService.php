@@ -9,10 +9,30 @@ class SettingsService
 {
     public const ANTHROPIC_KEY = 'anthropic_api_key';
 
+    public const ANTHROPIC_MODEL = 'anthropic_model';
+
+    /** Selectable Claude models (id => human label). The first is the recommended default. */
+    public const MODELS = [
+        'claude-opus-4-7' => 'Claude Opus 4.7 — most capable',
+        'claude-sonnet-4-6' => 'Claude Sonnet 4.6 — balanced (default)',
+        'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 — fastest',
+    ];
+
     /** Resolution order: DB setting (admin UI) first, then the env value. */
     public function anthropicKey(): ?string
     {
         return Setting::get(self::ANTHROPIC_KEY) ?: config('mdm.anthropic.env_key');
+    }
+
+    /** The active Claude model: DB setting (admin UI) first, then config/env default. */
+    public function anthropicModel(): string
+    {
+        return Setting::get(self::ANTHROPIC_MODEL) ?: config('mdm.anthropic.model');
+    }
+
+    public function setAnthropicModel(?string $model): void
+    {
+        Setting::put(self::ANTHROPIC_MODEL, $model ?: null);
     }
 
     public function hasAnthropicKey(): bool
@@ -59,7 +79,7 @@ class SettingsService
                 'anthropic-version' => '2023-06-01',
                 'content-type' => 'application/json',
             ])->timeout(20)->post('https://api.anthropic.com/v1/messages', [
-                'model' => config('mdm.anthropic.model'),
+                'model' => $this->anthropicModel(),
                 'max_tokens' => 1,
                 'messages' => [['role' => 'user', 'content' => 'ping']],
             ]);

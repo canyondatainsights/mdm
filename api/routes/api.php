@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SourceController;
 use App\Http\Controllers\Api\StewardshipController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\WikiController;
 use Illuminate\Support\Facades\Route;
 
 // Public
@@ -30,6 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/sources', [SourceController::class, 'index']);
     Route::get('/sources/{path}', [SourceController::class, 'show'])->where('path', '.*');
+    Route::get('/wiki', [WikiController::class, 'index']);
+    Route::get('/wiki/{path}', [WikiController::class, 'show'])->where('path', '.*');
     Route::post('/uploads/classify', [UploadController::class, 'classify']);
     Route::post('/uploads', [UploadController::class, 'store']);
     Route::post('/uploads/status', [UploadController::class, 'status']);

@@ -85,7 +85,7 @@ class Classifier
         TXT;
 
         $response = Prism::text()
-            ->using(Provider::Anthropic, config('mdm.anthropic.model'), ['api_key' => $key])
+            ->using(Provider::Anthropic, $this->settings->anthropicModel(), ['api_key' => $key])
             ->withMaxTokens(500)
             ->withSystemPrompt($system)
             ->withPrompt($prompt)

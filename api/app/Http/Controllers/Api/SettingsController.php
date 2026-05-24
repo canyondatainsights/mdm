@@ -21,7 +21,7 @@ class SettingsController extends Controller
                 'has_key' => $this->settings->hasAnthropicKey(),
                 'hint' => $this->settings->maskedHint(),
                 'source' => $this->settings->source(),
-                'model' => config('mdm.anthropic.model'),
+                'model' => $this->settings->anthropicModel(),
             ],
             'embeddings' => [
                 'driver' => config('mdm.embeddings.driver'),

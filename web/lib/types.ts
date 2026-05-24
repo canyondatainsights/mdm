@@ -112,6 +112,26 @@ export interface SourceDetail {
   trust: { score: number; level: "low" | "medium" | "high"; factors: { label: string; ok: boolean }[] } | null;
 }
 
+export interface WikiPageSummary {
+  id: number;
+  title: string;
+  path: string;
+  section: string | null;
+  mdm_vendor: string | null;
+  data_platform: string | null;
+  domain: string | null;
+  scope: string | null;
+  tags: string[];
+  updated: string | null;
+}
+
+export interface WikiPageDetail extends WikiPageSummary {
+  body: string;
+  product: string | null;
+  product_version: string | null;
+  financial_model: string | null;
+}
+
 export interface SettingsInfo {
   anthropic: { has_key: boolean; hint: string | null; source: string | null; model: string };
   embeddings: { driver: string; dim: number };

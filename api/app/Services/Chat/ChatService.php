@@ -94,7 +94,7 @@ class ChatService
         $full = '';
         try {
             $stream = Prism::text()
-                ->using(Provider::Anthropic, config('mdm.anthropic.model'), ['api_key' => $key])
+                ->using(Provider::Anthropic, $this->settings->anthropicModel(), ['api_key' => $key])
                 ->withMaxTokens((int) config('mdm.anthropic.max_tokens'))
                 ->withSystemPrompt($persona)
                 ->withMessages($messages)
@@ -122,7 +122,7 @@ class ChatService
             'content' => [['type' => 'markdown', 'text' => $full]],
             'citations' => $citations,
             'confidence' => $confidence,
-            'model' => config('mdm.anthropic.model'),
+            'model' => $this->settings->anthropicModel(),
         ]);
 
         $conversation->touch();

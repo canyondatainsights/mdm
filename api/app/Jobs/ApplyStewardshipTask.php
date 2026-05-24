@@ -5,12 +5,12 @@ namespace App\Jobs;
 use App\Models\AuditLog;
 use App\Models\StewardshipTask;
 use App\Services\Kb\Ingestor;
+use App\Services\Kb\WikiAuthor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Process;
 
 class ApplyStewardshipTask implements ShouldQueue
 {
@@ -22,7 +22,7 @@ class ApplyStewardshipTask implements ShouldQueue
         public StewardshipTask $task,
     ) {}
 
-    public function handle(Ingestor $ingestor): void
+    public function handle(Ingestor $ingestor, WikiAuthor $author): void
     {
         $kbRoot = rtrim(config('mdm.kb_path'), '/');
 
@@ -39,8 +39,13 @@ class ApplyStewardshipTask implements ShouldQueue
             $ingestor->ingestFile($abs, $kind, $kbRoot);
         }
 
-        // Git commit.
-        $commitHash = $this->gitCommit($kbRoot);
+        // Git commit (shared with the admin authoring flow).
+        $commitHash = $author->commit(
+            $kbRoot,
+            "stewardship: {$this->task->type} #{$this->task->id} — {$this->task->summary}",
+            $this->task->proposer?->name,
+            $this->task->proposer?->email,
+        );
 
         // Record in audit log.
         $this->task->update(['diff' => $this->task->diff ?: 'applied']);
@@ -180,25 +185,5 @@ class ApplyStewardshipTask implements ShouldQueue
         }
 
         file_put_contents($changelogPath, $changelog);
-    }
-
-    private function gitCommit(string $kbRoot): ?string
-    {
-        $message = "stewardship: {$this->task->type} #{$this->task->id} — {$this->task->summary}";
-        $author = $this->task->proposer?->name ?? 'system';
-        $email = $this->task->proposer?->email ?? 'system@mdm.local';
-
-        // Scope staging to the KB directory: kb/ lives inside the monorepo, so a
-        // bare `git add -A` would sweep unrelated repo changes into the audit commit.
-        $result = Process::path($kbRoot)
-            ->run("git add -A -- . && git commit --author=\"{$author} <{$email}>\" -m ".escapeshellarg($message).' 2>&1');
-
-        if ($result->successful()) {
-            $hashResult = Process::path($kbRoot)->run('git rev-parse HEAD');
-
-            return trim($hashResult->output());
-        }
-
-        return null;
     }
 }

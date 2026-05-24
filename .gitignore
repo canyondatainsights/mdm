@@ -49,6 +49,12 @@ Thumbs.db
 /kb/raw/**/*.xlsx
 /kb/raw/**/*.pptx
 
+# Crawled / uploaded raw text (e.g. docs.databricks.com pages) — transient, regenerable, and
+# license-encumbered; keep local. (Already-tracked notes stay tracked — ignore only affects new files.)
+/kb/raw/**/*.md
+/kb/raw/**/*.txt
+/kb/raw/**/*.html
+
 # ---- secrets / local ----
 .env
 *.local

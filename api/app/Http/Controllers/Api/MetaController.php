@@ -3,10 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Chunk;
-use App\Models\Source;
-use App\Models\WikiPage;
-use Illuminate\Support\Facades\DB;
+use App\Services\Kb\KbStats;
 
 class MetaController extends Controller
 {
@@ -17,18 +14,19 @@ class MetaController extends Controller
     }
 
     /** KB coverage stats for the sidebar / data-model explorer. */
-    public function stats()
+    public function stats(KbStats $stats)
     {
+        $t = $stats->totals();
+        // Reshape the {key => count} maps to the {vendor|platform, chunks}[] shape the web BrowseModal expects.
+        $rows = fn (array $map, string $label) => collect($map)
+            ->map(fn (int $c, string $name) => [$label => $name, 'chunks' => $c])->values();
+
         return [
-            'wiki_pages' => WikiPage::count(),
-            'sources' => Source::count(),
-            'chunks' => Chunk::count(),
-            'by_vendor' => DB::table('chunks')
-                ->selectRaw("coalesce(mdm_vendor, '(neutral)') as vendor, count(*) as chunks")
-                ->groupBy('vendor')->orderByDesc('chunks')->get(),
-            'by_platform' => DB::table('chunks')
-                ->selectRaw("coalesce(data_platform, '(neutral)') as platform, count(*) as chunks")
-                ->groupBy('platform')->orderByDesc('chunks')->get(),
+            'wiki_pages' => $t['wiki_pages'],
+            'sources' => $t['sources'],
+            'chunks' => $t['chunks'],
+            'by_vendor' => $rows($stats->byVendor(), 'vendor'),
+            'by_platform' => $rows($stats->byPlatform(), 'platform'),
         ];
     }
 }

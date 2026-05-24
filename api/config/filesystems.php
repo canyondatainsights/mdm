@@ -47,6 +47,23 @@ return [
             'report' => false,
         ],
 
+        // Wiki page media (architecture diagrams, etc.) — stored inside the versioned kb/ tree so they
+        // ride along with the wiki content + KB backup. Served by MediaController at a root-relative
+        // URL (host-portable: same-origin in the admin, prefixed with the API origin in the web app).
+        'kb_media' => [
+            'driver' => 'local',
+            'root' => (function () {
+                $p = env('KB_PATH', '../kb');
+                $root = str_starts_with($p, '/') ? $p : base_path($p);
+
+                return rtrim($root, '/').'/wiki/_media';
+            })(),
+            'url' => '/media/wiki',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
