@@ -69,6 +69,26 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
 
     if (line.trim() === "") { i++; continue; }
 
+    // Fenced code block ```… — render verbatim in monospace with preserved whitespace, so ASCII /
+    // box-drawing diagrams (and code) stay aligned and readable instead of being reflowed.
+    const fence = line.match(/^\s*(`{3,}|~{3,})(\w*)\s*$/);
+    if (fence) {
+      const marker = fence[1][0];
+      const code: string[] = [];
+      i++;
+      while (i < lines.length && !new RegExp(`^\\s*${marker}{3,}\\s*$`).test(lines[i])) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++; // closing fence
+      out.push(
+        <pre key={key++} className="mono" style={{ margin: 0, padding: "12px 14px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 8, overflowX: "auto", fontSize: 12.5, lineHeight: 1.5, color: "var(--fg-2)", whiteSpace: "pre" }}>
+          {code.join("\n")}
+        </pre>,
+      );
+      continue;
+    }
+
     // Horizontal rule (section divider)
     if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
       out.push(<hr key={key++} style={{ border: 0, borderTop: "1px solid var(--border)", margin: "2px 0" }} />);

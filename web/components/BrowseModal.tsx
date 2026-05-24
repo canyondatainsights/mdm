@@ -5,7 +5,6 @@ import type { SourceListItem, User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { DocTypeBadge, HierPill, Pill, subjectTone, vendorTone } from "./ui";
-import { WikiBrowser } from "./WikiBrowser";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
 
@@ -17,7 +16,6 @@ type Stats = {
 
 const TITLES: Record<string, string> = {
   sources: "Knowledge sources",
-  wiki: "Browse knowledge",
   stats: "Data model explorer",
   stewardship: "Stewardship queue",
   audit: "Audit log",
@@ -53,9 +51,7 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
   );
 
   return (
-    <Modal title={TITLES[view] ?? "Browse"} onClose={onClose} width={view === "wiki" ? 940 : 620}>
-      {view === "wiki" && <WikiBrowser />}
-
+    <Modal title={TITLES[view] ?? "Browse"} onClose={onClose} width={620}>
       {view === "audit" && (
         <div style={{ fontSize: 12.5, color: "var(--fg-3)", lineHeight: 1.6 }}>
           Every wiki change and approval is recorded in the audit log and as a git commit. The full,

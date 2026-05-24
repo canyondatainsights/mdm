@@ -11,6 +11,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
 import { UploadModal } from "@/components/UploadModal";
+import { WikiBrowser } from "@/components/WikiBrowser";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -64,6 +65,8 @@ export default function Home() {
   const onNav = (key: string) => {
     if (key === "chat") { setNavView("chat"); return; }
     if (key === "settings") { setModal("settings"); return; }
+    // Wiki browsing takes over the main viewer (roomy reader); other panels open in the modal.
+    if (key === "wiki") { setNavView("wiki"); return; }
     setBrowseView(key);
     setNavView(key);
     setModal("browse");
@@ -106,21 +109,28 @@ export default function Home() {
         />
       )}
 
-      <ChatArea
-        conversation={active}
-        initialMessages={messages}
-        onOpenSource={openSourceInInspector}
-        onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleInspector={() => setInspectorOpen((o) => !o)}
-        inspectorOpen={inspectorOpen}
-        onChanged={refreshConversations}
-        onNeedKey={() => { if (user.roles.includes("Admin")) setModal("settings"); }}
-        onNew={() => setModal("stacklock")}
-        onAttach={openUpload}
-      />
+      {navView === "wiki" ? (
+        <WikiBrowser
+          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+          sidebarCollapsed={sidebarCollapsed}
+        />
+      ) : (
+        <ChatArea
+          conversation={active}
+          initialMessages={messages}
+          onOpenSource={openSourceInInspector}
+          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleInspector={() => setInspectorOpen((o) => !o)}
+          inspectorOpen={inspectorOpen}
+          onChanged={refreshConversations}
+          onNeedKey={() => { if (user.roles.includes("Admin")) setModal("settings"); }}
+          onNew={() => setModal("stacklock")}
+          onAttach={openUpload}
+        />
+      )}
 
-      {inspectorOpen && <Inspector path={openSource} onClose={() => setInspectorOpen(false)} />}
+      {inspectorOpen && navView !== "wiki" && <Inspector path={openSource} onClose={() => setInspectorOpen(false)} />}
 
       {modal === "stacklock" && <StackLockModal onClose={() => setModal(null)} onCreated={onCreated} />}
       {modal === "settings" && <SettingsModal onClose={() => setModal(null)} />}
