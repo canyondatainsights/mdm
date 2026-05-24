@@ -87,7 +87,10 @@ class Metadata
         // isolation filters hide the doc. When unsure, leave null / 'general' (the filename
         // already set the domain) and let an explicit upload tag or Phase-B classification decide.
         $titleish = strtolower(basename($relPath).' '.substr((string) $body, 0, 400));
-        if (empty($meta['mdm_vendor'])) {
+        // Don't auto-stamp an MDM vendor on a doc that's explicitly tagged to a data platform
+        // (e.g. crawled Databricks/Snowflake docs). Those are platform docs — vendor-neutral re: the
+        // MDM tool — so they must surface for any MDM vendor running on that platform.
+        if (empty($meta['mdm_vendor']) && empty($meta['data_platform'])) {
             $meta['mdm_vendor'] = self::detectFromList($titleish, \App\Services\Taxonomy\Taxonomy::values('mdm_vendor'));
         }
         // data_platform is NOT inferred from content — only an explicit tag/front-matter/section.
