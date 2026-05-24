@@ -42,9 +42,10 @@ class Metadata
 
     /**
      * @param  array<string,mixed>  $frontMatter
-     * @return array{mdm_vendor:?string,data_platform:?string,financial_model:?string,domain:string,scope:string,page_updated_at:?string,title:?string}
+     * @param  array<string,mixed>  $overrides  Explicit values (e.g. from the upload form) that win over derivation.
+     * @return array{mdm_vendor:?string,data_platform:?string,financial_model:?string,domain:string,scope:string,product:?string,product_version:?string,page_updated_at:?string,title:?string}
      */
-    public static function resolve(string $relPath, array $frontMatter, ?string $body = null): array
+    public static function resolve(string $relPath, array $frontMatter, ?string $body = null, array $overrides = []): array
     {
         [$vendor, $platform, $financial, $scope] = self::sectionDefaults($relPath);
         $domain = self::domainFromPath($relPath);
@@ -58,12 +59,47 @@ class Metadata
             'financial_model' => $fm(['financial_model', 'finmodel'], $financial),
             'domain' => $fm(['domain'], $domain),
             'scope' => $fm(['scope'], $scope),
+            'product' => $fm(['product'], null),
+            'product_version' => $fm(['version', 'product_version'], null),
             'title' => $fm(['title'], null),
             'page_updated_at' => $fm(['updated', 'page_updated_at'], $body ? self::lastRevisionDate($body) : null),
         ];
 
+        // Explicit overrides (upload form) take precedence over anything derived.
+        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'domain', 'scope', 'product', 'product_version', 'title'] as $k) {
+            if (array_key_exists($k, $overrides) && ! in_array($overrides[$k], ['', null], true)) {
+                $meta[$k] = is_string($overrides[$k]) ? trim($overrides[$k]) : $overrides[$k];
+            }
+        }
+
+        // Auto-parse from filename + document content for anything still missing.
+        $hay = strtolower(basename($relPath).' '.substr((string) $body, 0, 4000));
+        if (empty($meta['mdm_vendor'])) {
+            $meta['mdm_vendor'] = self::detectFromList($hay, config('mdm.dimensions.mdm_vendor', []));
+        }
+        if (empty($meta['data_platform'])) {
+            $meta['data_platform'] = self::detectFromList($hay, config('mdm.dimensions.data_platform', []));
+        }
+        if (empty($meta['product'])) {
+            $candidates = config('mdm.products.'.($meta['mdm_vendor'] ?? '_'))
+                ?? array_merge([], ...array_values(config('mdm.products', [])));
+            $meta['product'] = self::detectProduct($hay, $candidates);
+        }
+        if (empty($meta['product_version'])) {
+            $meta['product_version'] = self::detectVersion(basename($relPath).' '.substr((string) $body, 0, 2000));
+        }
+        // If the domain only fell back to 'general', try to infer it from the content.
+        if (($meta['domain'] ?? 'general') === 'general' && ! self::first($frontMatter, ['domain']) && empty($overrides['domain'])) {
+            foreach (self::DOMAIN_KEYWORDS as $kw => $d) {
+                if (str_contains($hay, $kw)) {
+                    $meta['domain'] = $d;
+                    break;
+                }
+            }
+        }
+
         // Normalize empty strings / "null" to null.
-        foreach (['mdm_vendor', 'data_platform', 'financial_model'] as $k) {
+        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'product', 'product_version'] as $k) {
             if (in_array($meta[$k], ['', 'null', 'none', null], true)) {
                 $meta[$k] = null;
             }
@@ -93,6 +129,44 @@ class Metadata
         }
 
         return 'general';
+    }
+
+    /** First value from $list (lowercase tokens, e.g. vendors) that appears in the haystack. */
+    private static function detectFromList(string $hay, array $list): ?string
+    {
+        foreach ($list as $v) {
+            if ($v !== '' && str_contains($hay, strtolower($v))) {
+                return $v;
+            }
+        }
+
+        return null;
+    }
+
+    /** Longest configured product name that appears in the haystack. */
+    private static function detectProduct(string $hay, array $products): ?string
+    {
+        usort($products, fn ($a, $b) => strlen((string) $b) <=> strlen((string) $a));
+        foreach ($products as $p) {
+            if ($p !== '' && str_contains($hay, strtolower($p))) {
+                return $p;
+            }
+        }
+
+        return null;
+    }
+
+    /** Detect a version: explicit "version/release/v X.Y" first, else an x.y token in the filename. */
+    private static function detectVersion(string $s): ?string
+    {
+        if (preg_match('/\b(?:version|release|v|r)\s*[:\-]?\s*(\d+\.\d+(?:\.\d+)?)/i', $s, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/\b(\d{1,2}\.\d{1,2}(?:\.\d+)?)\b/', $s, $m)) {
+            return $m[1];
+        }
+
+        return null;
     }
 
     private static function first(array $arr, array $keys)

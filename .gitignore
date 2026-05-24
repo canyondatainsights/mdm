@@ -43,6 +43,12 @@ Thumbs.db
 !/kb/output/qa-log/.gitkeep
 /kb/output/exports/
 
+# Uploaded source binaries — kept local, not versioned (copyright / repo bloat).
+/kb/raw/**/*.pdf
+/kb/raw/**/*.docx
+/kb/raw/**/*.xlsx
+/kb/raw/**/*.pptx
+
 # ---- secrets / local ----
 .env
 *.local

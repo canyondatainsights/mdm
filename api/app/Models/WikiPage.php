@@ -8,7 +8,8 @@ class WikiPage extends Model
 {
     protected $fillable = [
         'path', 'title', 'section', 'mdm_vendor', 'data_platform',
-        'financial_model', 'domain', 'scope', 'page_updated_at', 'content_hash',
+        'financial_model', 'domain', 'scope', 'product', 'product_version',
+        'page_updated_at', 'content_hash',
     ];
 
     protected $casts = [

@@ -18,6 +18,14 @@ function msgText(m: Message): string {
 
 function SourcesBlock({ citations, onOpen }: { citations: Citation[]; onOpen: (path: string) => void }) {
   if (!citations?.length) return null;
+  // One entry per source document (multiple cited passages collapse to a single line).
+  const seen = new Set<string>();
+  const unique = citations.filter((c) => {
+    const key = c.origin || c.path;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return (
     <div style={{ marginTop: 14, padding: "10px 12px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -25,20 +33,28 @@ function SourcesBlock({ citations, onOpen }: { citations: Citation[]; onOpen: (p
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Sources</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {citations.map((c) => (
-          <button key={c.n} onClick={() => onOpen(c.path)}
-            style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 9px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 7, textAlign: "left", width: "100%" }}>
-            <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 4, background: "var(--accent-soft)", color: "var(--accent-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "1px solid var(--accent-border)" }}>{c.n}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <DocTypeBadge type="MD" />
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.path.replace(/^wiki\//, "")}</span>
+        {citations.map((c) => {
+          const isUrl = !!c.origin && /^https?:\/\//.test(c.origin);
+          const meta = [c.product, c.product_version, c.date].filter(Boolean).join(" · ");
+          return (
+            <button key={c.n} onClick={() => onOpen(c.path)}
+              style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 9px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 7, textAlign: "left", width: "100%" }}>
+              <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 4, background: "var(--accent-soft)", color: "var(--accent-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "1px solid var(--accent-border)" }}>{c.n}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <DocTypeBadge type={c.doc_type ?? "MD"} />
+                  <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title ?? c.path.replace(/^wiki\//, "")}</span>
+                </div>
+                {meta && <div style={{ fontSize: 11, color: "var(--fg-3)", marginTop: 2 }}>{meta}</div>}
+                {c.anchor && <div style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{c.anchor}</div>}
+                {isUrl
+                  ? <a href={c.origin!} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="mono" style={{ fontSize: 10.5, color: "var(--accent-2)", marginTop: 2, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.origin}</a>
+                  : <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-4)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.origin ?? c.path}</div>}
               </div>
-              {c.anchor && <div style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{c.anchor}</div>}
-            </div>
-            <Icon name="external" size={13} style={{ color: "var(--fg-4)", marginTop: 2, flexShrink: 0 }} />
-          </button>
-        ))}
+              <Icon name="external" size={13} style={{ color: "var(--fg-4)", marginTop: 2, flexShrink: 0 }} />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -77,11 +93,12 @@ const SUGGESTED = [
 
 export function ChatArea({
   conversation, initialMessages, onOpenSource, onToggleSidebar, sidebarCollapsed,
-  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew,
+  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach,
 }: {
   conversation: Conversation | null; initialMessages: Message[];
   onOpenSource: (path: string) => void; onToggleSidebar: () => void; sidebarCollapsed: boolean;
   onToggleInspector: () => void; inspectorOpen: boolean; onChanged: () => void; onNeedKey: () => void; onNew: () => void;
+  onAttach?: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -196,6 +213,7 @@ export function ChatArea({
               style={{ width: "100%", resize: "none", border: 0, outline: "none", background: "transparent", fontSize: 14, color: "var(--fg)", lineHeight: 1.5, minHeight: 44, fontFamily: "inherit" }}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              {onAttach && <IconButton icon="paperclip" label="Attach a source to the KB" onClick={onAttach} />}
               <Pill tone="accent" size="xs" icon="database">{cap(conversation.mdm_vendor)} · {cap(conversation.data_platform)}</Pill>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{input.length} / 8,000</span>

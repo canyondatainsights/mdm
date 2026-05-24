@@ -38,12 +38,39 @@ return [
         'overlap_tokens' => 130,
     ],
 
+    // OCR fallback for scanned/image PDFs (embedded-text extraction yields little).
+    // Requires poppler (pdftoppm) + tesseract on PATH (brew install poppler tesseract).
+    'ocr' => [
+        'enabled' => (bool) env('OCR_ENABLED', true),
+        'tesseract' => env('TESSERACT_BIN', 'tesseract'),
+        'pdftoppm' => env('PDFTOPPM_BIN', 'pdftoppm'),
+        // poppler text/info tools — robust, low-memory PDF text extraction (vs in-PHP parsing).
+        'pdftotext' => env('PDFTOTEXT_BIN', 'pdftotext'),
+        'pdfinfo' => env('PDFINFO_BIN', 'pdfinfo'),
+        'dpi' => (int) env('OCR_DPI', 200),
+        'max_pages' => (int) env('OCR_MAX_PAGES', 80), // cap OCR work per doc
+    ],
+
     // Allowed values for the lockable stack dimensions. Extend to add vendors/platforms.
     'dimensions' => [
         'mdm_vendor' => ['informatica', 'sap', 'profisee', 'reltio', 'ataccama', 'stibo'],
         'data_platform' => ['databricks', 'snowflake', 'bigquery', 'synapse'],
         'financial_model' => ['isda-cdm', 'fpml', 'fibo'],
         'domain' => ['customer', 'product', 'vendor', 'supplier', 'finance', 'healthcare', 'general'],
+    ],
+
+    // Known products per vendor — drives the upload form's product picker (free-text
+    // fallback allowed). Versions are free-text (e.g. '10.5', 'SaaS 2024.x'), not enumerated.
+    'products' => [
+        'informatica' => [
+            'MDM Hub', 'Customer 360', 'Supplier 360', 'Product 360', 'Reference 360',
+            'IDQ', 'IDMC', 'Data Director', 'Provisioning Tool',
+        ],
+        'sap' => ['Master Data Governance', 'S/4HANA MDG'],
+        'profisee' => ['Profisee Platform'],
+        'reltio' => ['Reltio Connected Data Platform'],
+        'ataccama' => ['Ataccama ONE'],
+        'stibo' => ['STEP'],
     ],
 
     // Phrases that signal the user wants to enrich the KB (creates a stewardship task).

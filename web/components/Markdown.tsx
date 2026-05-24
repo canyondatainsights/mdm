@@ -42,6 +42,35 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
       {blocks.map((block, i) => {
         const lines = block.split("\n");
 
+        // GFM table: a header row, a |---|---| separator, then body rows.
+        if (lines.length >= 2 && lines[0].includes("|") && lines[1].includes("|") && /^[\s|:-]*-[\s|:-]*$/.test(lines[1])) {
+          const cells = (l: string) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
+          const header = cells(lines[0]);
+          const rows = lines.slice(2).filter((l) => l.includes("|")).map(cells);
+          return (
+            <div key={i} style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {header.map((c, k) => (
+                      <th key={k} style={{ textAlign: "left", padding: "7px 11px", background: "var(--bg-2)", borderBottom: "1px solid var(--border-strong)", fontWeight: 600, color: "var(--fg)", whiteSpace: "nowrap" }}>{inline(c, onCite)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, k) => (
+                    <tr key={k}>
+                      {r.map((c, m) => (
+                        <td key={m} style={{ padding: "7px 11px", verticalAlign: "top", borderTop: "1px solid var(--border)", color: "var(--fg-2)" }}>{inline(c, onCite)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
         const h = block.match(/^(#{1,6})\s+(.+)$/);
         if (h) {
           const lvl = h[1].length;

@@ -29,7 +29,9 @@ class SystemPromptBuilder
           the wiki but flag the disagreement.
         - **Cite your sources inline** using bracketed numbers like [1], [2] that map to the
           numbered SOURCES provided in the context. Every substantive claim drawn from a source
-          should carry a citation.
+          should carry a citation. Each SOURCE names the **original source** and its metadata
+          (product, version, date); when it matters, name the source and its version/date in prose
+          too (e.g. "per the Customer 360 10.5 data model guide [1]"), so the reader can trace it.
         - **Do not fabricate.** If the context does not cover the question and you are not
           confident, say so plainly and offer to research or to have the topic added to the KB.
         - If a cited page looks stale for a fast-moving product (e.g. Informatica IDMC), say so
@@ -50,9 +52,17 @@ class SystemPromptBuilder
         already excluded off-stack material from your context by design.
 
         ## Enrichment
-        If the user says things like "capture this to the wiki", "add this to the KB", or
-        "refresh this topic", acknowledge that you are creating a stewardship task (a proposed
-        change) for review — you do not edit the wiki directly.
+        A stewardship task (a proposed KB change for review) is created **only** when the user's
+        message contains one of these exact phrases: "capture this to the wiki", "add this to the
+        KB", "add this to the knowledge base", "refresh this topic", "ingest this file". You cannot
+        create one yourself. So:
+        - When that phrase is present, acknowledge that a stewardship task has been queued for
+          review — you do not edit the wiki directly.
+        - When the context does not cover the question, say so plainly and tell the user the exact
+          phrase to use (e.g. *say "add this to the KB" and attach the source*). **Never claim you
+          created or will create a task unless the user used one of those phrases.**
+        - New product documentation is added by an admin/steward through the upload interface, not
+          by you.
         PROMPT;
     }
 
@@ -73,9 +83,34 @@ class SystemPromptBuilder
 
         foreach ($chunks as $i => $c) {
             $n = $i + 1;
-            $label = $c['source_path'].($c['anchor'] ? '  ('.$c['anchor'].')' : '');
-            $lines[] = "[{$n}] {$label}\n".trim($c['content'])."\n";
-            $map[] = ['n' => $n, 'path' => $c['source_path'], 'anchor' => $c['anchor'] ?? null];
+            $title = $c['wiki_title'] ?? $c['source_title'] ?? null;
+            // Original reference: the fetched URL if any, else the file/wiki path.
+            $origin = ! empty($c['source_origin']) ? $c['source_origin'] : $c['source_path'];
+            $product = trim(($c['product'] ?? '').' '.($c['product_version'] ?? ''));
+            $rawDate = $c['page_date'] ?? $c['source_created'] ?? null;
+            $date = $rawDate ? substr((string) $rawDate, 0, 10) : null;
+
+            // Header line names the original source + its metadata (product/version, date).
+            $head = array_filter([
+                $title,
+                $product !== '' ? $product : null,
+                $date,
+                $c['anchor'] ?? null,
+            ]);
+            $label = $head ? implode(' · ', $head) : $c['source_path'];
+
+            $lines[] = "[{$n}] {$label}\n      source: {$origin}\n".trim($c['content'])."\n";
+            $map[] = [
+                'n' => $n,
+                'path' => $c['source_path'],
+                'anchor' => $c['anchor'] ?? null,
+                'title' => $title,
+                'origin' => $origin,
+                'doc_type' => $c['source_doc_type'] ?? null,
+                'product' => $c['product'] ?? null,
+                'product_version' => $c['product_version'] ?? null,
+                'date' => $date,
+            ];
         }
 
         return [implode("\n", $lines), $map];

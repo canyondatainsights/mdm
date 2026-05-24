@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sources', [SourceController::class, 'index']);
     Route::get('/sources/{path}', [SourceController::class, 'show'])->where('path', '.*');
     Route::post('/uploads', [UploadController::class, 'store']);
+    Route::post('/uploads/status', [UploadController::class, 'status']);
 
     Route::get('/stewardship/tasks', [StewardshipController::class, 'index']);
     Route::post('/stewardship/tasks/{task}/approve', [StewardshipController::class, 'approve']);

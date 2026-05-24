@@ -32,9 +32,9 @@ class Retriever
         $literal = '['.implode(',', $vector).']';
 
         $rows = $this->baseQuery($stack)
-            ->selectRaw('embedding <=> ?::vector AS distance', [$literal])
-            ->whereNotNull('embedding')
-            ->orderByRaw('embedding <=> ?::vector', [$literal])
+            ->selectRaw('chunks.embedding <=> ?::vector AS distance', [$literal])
+            ->whereNotNull('chunks.embedding')
+            ->orderByRaw('chunks.embedding <=> ?::vector', [$literal])
             ->limit($k)
             ->get();
 
@@ -49,19 +49,45 @@ class Retriever
 
     private function baseQuery(array $stack)
     {
-        $q = DB::table('chunks')->select([
-            'id', 'source_kind', 'source_path', 'anchor', 'content',
-            'mdm_vendor', 'data_platform', 'financial_model', 'domain', 'scope',
-        ]);
+        // Join the parent source/wiki row so citations can reference the ORIGINAL source
+        // (URL for fetched docs, file, or wiki page) with its metadata (title, date).
+        $q = DB::table('chunks')
+            ->leftJoin('sources', 'sources.id', '=', 'chunks.source_id')
+            ->leftJoin('wiki_pages', 'wiki_pages.id', '=', 'chunks.wiki_page_id')
+            ->select([
+                'chunks.id', 'chunks.source_kind', 'chunks.source_path', 'chunks.anchor', 'chunks.content',
+                'chunks.mdm_vendor', 'chunks.data_platform', 'chunks.financial_model', 'chunks.domain', 'chunks.scope',
+                'chunks.product', 'chunks.product_version',
+                'sources.title as source_title', 'sources.owner as source_origin',
+                'sources.doc_type as source_doc_type', 'sources.created_at as source_created',
+                'wiki_pages.title as wiki_title', 'wiki_pages.page_updated_at as page_date',
+            ]);
 
-        // Hard vendor / platform / financial-model isolation.
-        $q->where(fn ($w) => $w->whereNull('mdm_vendor')->orWhere('mdm_vendor', $stack['mdm_vendor']));
-        $q->where(fn ($w) => $w->whereNull('data_platform')->orWhere('data_platform', $stack['data_platform']));
-        $q->where(fn ($w) => $w->whereNull('financial_model')->orWhere('financial_model', $stack['financial_model']));
+        // Hold incomplete sources out of retrieval until a steward tags them (vendor + product),
+        // and exclude superseded copies (older duplicates / earlier versions).
+        $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.needs_metadata', false));
+        $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.superseded', false));
 
-        // Soft domain scoping: locked domains + always-relevant 'general'.
-        $domains = array_values(array_unique(array_merge($stack['domains'] ?: [], ['general'])));
-        $q->whereIn('domain', $domains);
+        // Hard vendor / platform / financial-model isolation (qualified — joined tables share these names).
+        $q->where(fn ($w) => $w->whereNull('chunks.mdm_vendor')->orWhere('chunks.mdm_vendor', $stack['mdm_vendor']));
+        $q->where(fn ($w) => $w->whereNull('chunks.data_platform')->orWhere('chunks.data_platform', $stack['data_platform']));
+        $q->where(fn ($w) => $w->whereNull('chunks.financial_model')->orWhere('chunks.financial_model', $stack['financial_model']));
+
+        // Domain scoping. When the stack pins domains, restrict to exactly those — no
+        // generic 'general' filler (a locked stack does not want vendor-agnostic padding).
+        // When no domains are pinned, don't constrain by domain (vendor isolation still applies).
+        $domains = $stack['domains'] ?: [];
+        if (! empty($domains)) {
+            $q->whereIn('chunks.domain', $domains);
+        }
+
+        // Optional product / version scoping (when the conversation pins them).
+        if (! empty($stack['product'])) {
+            $q->where(fn ($w) => $w->whereNull('chunks.product')->orWhere('chunks.product', $stack['product']));
+        }
+        if (! empty($stack['product_version'])) {
+            $q->where(fn ($w) => $w->whereNull('chunks.product_version')->orWhere('chunks.product_version', $stack['product_version']));
+        }
 
         return $q;
     }

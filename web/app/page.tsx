@@ -10,6 +10,7 @@ import { Login } from "@/components/Login";
 import { SettingsModal } from "@/components/SettingsModal";
 import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
+import { UploadModal } from "@/components/UploadModal";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,7 +24,7 @@ export default function Home() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [openSource, setOpenSource] = useState<string | null>(null);
 
-  const [modal, setModal] = useState<null | "stacklock" | "settings" | "browse">(null);
+  const [modal, setModal] = useState<null | "stacklock" | "settings" | "browse" | "upload">(null);
   const [browseView, setBrowseView] = useState("sources");
   const [navView, setNavView] = useState("chat");
 
@@ -80,6 +81,9 @@ export default function Home() {
   if (!booted) return <div style={{ height: "100%" }} />;
   if (!user) return <Login onAuthed={setUser} />;
 
+  const canUpload = user.roles.includes("Admin") || user.roles.includes("Steward");
+  const openUpload = canUpload ? () => setModal("upload") : undefined;
+
   return (
     <div style={{ height: "100%", display: "flex", background: "var(--bg)" }}>
       {!sidebarCollapsed && (
@@ -106,6 +110,7 @@ export default function Home() {
         onChanged={refreshConversations}
         onNeedKey={() => { if (user.roles.includes("Admin")) setModal("settings"); }}
         onNew={() => setModal("stacklock")}
+        onAttach={openUpload}
       />
 
       {inspectorOpen && <Inspector path={openSource} onClose={() => setInspectorOpen(false)} />}
@@ -113,8 +118,9 @@ export default function Home() {
       {modal === "stacklock" && <StackLockModal onClose={() => setModal(null)} onCreated={onCreated} />}
       {modal === "settings" && <SettingsModal onClose={() => setModal(null)} />}
       {modal === "browse" && (
-        <BrowseModal view={browseView} user={user} onClose={() => { setModal(null); setNavView("chat"); }} onOpenSource={openSourceInInspector} />
+        <BrowseModal view={browseView} user={user} onClose={() => { setModal(null); setNavView("chat"); }} onOpenSource={openSourceInInspector} onOpenUpload={openUpload} />
       )}
+      {modal === "upload" && <UploadModal onClose={() => setModal(null)} />}
     </div>
   );
 }

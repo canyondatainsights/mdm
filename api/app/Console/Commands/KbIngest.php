@@ -4,10 +4,13 @@ namespace App\Console\Commands;
 
 use App\Services\Kb\Ingestor;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class KbIngest extends Command
 {
-    protected $signature = 'kb:ingest {--path= : Ingest a single file (relative to the KB root)}';
+    protected $signature = 'kb:ingest
+        {--path= : Ingest a single file (relative to the KB root)}
+        {--fresh : Clear all chunks and re-embed everything (use after switching embeddings driver)}';
 
     protected $description = 'Parse, chunk, embed, and index the knowledge base (wiki/ + raw/) into pgvector';
 
@@ -16,6 +19,13 @@ class KbIngest extends Command
         $root = rtrim(config('mdm.kb_path'), '/');
         $this->info("KB root: {$root}");
         $this->info('Embedder: '.config('mdm.embeddings.driver').' ('.config('mdm.embeddings.dim').'d)');
+
+        if ($this->option('fresh')) {
+            // Drop all vectors and reset idempotency hashes so every file re-embeds.
+            DB::table('chunks')->delete();
+            DB::table('wiki_pages')->update(['content_hash' => null]);
+            $this->warn('--fresh: cleared all chunks and reset wiki_pages.content_hash.');
+        }
 
         if ($single = $this->option('path')) {
             $abs = $root.'/'.ltrim($single, '/');

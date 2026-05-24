@@ -62,7 +62,16 @@ export const api = {
   // sources
   sources: () => req<{ count: number; sources: SourceListItem[] }>("/sources"),
   source: (path: string) => req<SourceDetail>(`/sources/${path}`),
-  upload: (form: FormData) => req<{ ok: boolean; path: string; status: string; chunks: number }>("/uploads", { method: "POST", body: form }),
+  upload: (form: FormData) =>
+    req<{ ok: boolean; queued: number; files: { path?: string; url?: string; status: string }[] }>(
+      "/uploads",
+      { method: "POST", body: form },
+    ),
+  uploadStatus: (paths: string[]) =>
+    req<{ statuses: Record<string, { status: string; needs_metadata: boolean; chunks: number }> }>(
+      "/uploads/status",
+      { method: "POST", body: JSON.stringify({ paths }) },
+    ),
 
   // settings (admin)
   settings: () => req<SettingsInfo>("/settings"),

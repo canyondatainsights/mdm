@@ -3,11 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SourceResource\Pages;
+use App\Jobs\IngestUploadedFile;
+use App\Models\Chunk;
 use App\Models\Source;
 use Filament\Actions;
+use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Infolists;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -53,6 +58,7 @@ class SourceResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->poll('5s')
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
@@ -67,12 +73,30 @@ class SourceResource extends Resource
                     ->placeholder('—'),
                 Tables\Columns\TextColumn::make('domain')
                     ->placeholder('—'),
+                Tables\Columns\TextColumn::make('product')
+                    ->placeholder('—')
+                    ->description(fn (Source $r) => $r->product_version),
+                Tables\Columns\TextColumn::make('ingest_status')
+                    ->label('Ingestion')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'ready' => 'success',
+                        'processing' => 'warning',
+                        'failed' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\IconColumn::make('needs_metadata')
+                    ->label('Needs tags')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-exclamation-triangle')->trueColor('warning')
+                    ->falseIcon('heroicon-o-check-circle')->falseColor('success'),
                 Tables\Columns\IconColumn::make('approved')->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
+                Tables\Filters\TernaryFilter::make('needs_metadata')->label('Needs metadata'),
                 Tables\Filters\TernaryFilter::make('approved'),
                 Tables\Filters\SelectFilter::make('doc_type')
                     ->options(fn () => Source::distinct()->whereNotNull('doc_type')->pluck('doc_type', 'doc_type')->toArray()),
@@ -83,12 +107,94 @@ class SourceResource extends Resource
             ])
             ->recordActions([
                 Actions\ViewAction::make(),
+                Actions\Action::make('editMeta')
+                    ->label('Edit metadata')
+                    ->icon('heroicon-o-tag')
+                    ->color(fn (Source $record) => $record->needs_metadata ? 'warning' : 'gray')
+                    ->modalHeading('Source metadata')
+                    ->modalDescription('Vendor + Product are required before this source is used in answers.')
+                    ->fillForm(fn (Source $record) => [
+                        'mdm_vendor' => $record->mdm_vendor,
+                        'data_platform' => $record->data_platform,
+                        'product' => $record->product,
+                        'product_version' => $record->product_version,
+                        'domain' => $record->domain,
+                        'scope' => $record->scope,
+                    ])
+                    ->form([
+                        Forms\Components\Select::make('mdm_vendor')->label('Vendor')
+                            ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
+                            ->live(),
+                        Forms\Components\Select::make('data_platform')->label('Data platform')
+                            ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                        Forms\Components\TextInput::make('product')->maxLength(128)
+                            ->datalist(fn (Get $get) => config('mdm.products')[$get('mdm_vendor')] ?? []),
+                        Forms\Components\TextInput::make('product_version')->label('Version')->maxLength(64),
+                        Forms\Components\Select::make('domain')
+                            ->options(fn () => collect(config('mdm.dimensions.domain'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                        Forms\Components\Select::make('scope')->options(['vendor-specific' => 'Vendor-specific', 'neutral' => 'Neutral']),
+                    ])
+                    ->action(function (Source $record, array $data) {
+                        $needs = empty($data['mdm_vendor']) || empty($data['product']);
+                        $record->update(array_merge($data, ['needs_metadata' => $needs]));
+                        // Propagate the tags to this source's chunks so retrieval/citations match.
+                        Chunk::where('source_path', $record->path)->update([
+                            'mdm_vendor' => $data['mdm_vendor'] ?: null,
+                            'data_platform' => $data['data_platform'] ?: null,
+                            'product' => $data['product'] ?: null,
+                            'product_version' => $data['product_version'] ?: null,
+                            'domain' => $data['domain'] ?: ($record->domain ?: 'general'),
+                            'scope' => $data['scope'] ?: ($record->scope ?: 'vendor-specific'),
+                        ]);
+                        Notification::make()
+                            ->title($needs ? 'Saved — still missing vendor/product (held from answers)' : 'Metadata saved — source is now live')
+                            ->color($needs ? 'warning' : 'success')
+                            ->send();
+                    }),
                 Actions\Action::make('toggleApproval')
                     ->icon(fn (Source $record) => $record->approved ? 'heroicon-o-x-mark' : 'heroicon-o-check')
                     ->color(fn (Source $record) => $record->approved ? 'danger' : 'success')
                     ->label(fn (Source $record) => $record->approved ? 'Revoke' : 'Approve')
                     ->requiresConfirmation()
                     ->action(fn (Source $record) => $record->update(['approved' => ! $record->approved])),
+                Actions\Action::make('reingest')
+                    ->label('Re-ingest')
+                    ->icon('heroicon-o-arrow-path')
+                    ->requiresConfirmation()
+                    ->modalDescription('Re-parse, re-chunk, and re-embed this document (e.g. after switching the embeddings driver).')
+                    ->action(function (Source $record) {
+                        $root = rtrim(config('mdm.kb_path'), '/');
+                        IngestUploadedFile::dispatch(
+                            $root.'/'.$record->path,
+                            $root,
+                            array_filter([
+                                'mdm_vendor' => $record->mdm_vendor,
+                                'data_platform' => $record->data_platform,
+                                'financial_model' => $record->financial_model,
+                                'domain' => $record->domain,
+                                'scope' => $record->scope,
+                                'product' => $record->product,
+                                'product_version' => $record->product_version,
+                            ], fn ($v) => $v !== null && $v !== ''),
+                            $record->uploaded_by,
+                        );
+                        Notification::make()->title('Re-ingestion queued')->success()->send();
+                    }),
+                Actions\Action::make('deleteSource')
+                    ->label('Delete')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription('Removes the file from kb/raw, deletes its chunks, and removes the source record.')
+                    ->action(function (Source $record) {
+                        $abs = rtrim(config('mdm.kb_path'), '/').'/'.$record->path;
+                        if (is_file($abs)) {
+                            @unlink($abs);
+                        }
+                        // chunks cascade via the source_id FK (ON DELETE CASCADE).
+                        $record->delete();
+                        Notification::make()->title('Source deleted')->success()->send();
+                    }),
             ]);
     }
 

@@ -19,8 +19,8 @@ const TITLES: Record<string, string> = {
   audit: "Audit log",
 };
 
-export function BrowseModal({ view, user, onClose, onOpenSource }: {
-  view: string; user: User; onClose: () => void; onOpenSource: (path: string) => void;
+export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }: {
+  view: string; user: User; onClose: () => void; onOpenSource: (path: string) => void; onOpenUpload?: () => void;
 }) {
   const [sources, setSources] = useState<SourceListItem[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -77,6 +77,12 @@ export function BrowseModal({ view, user, onClose, onOpenSource }: {
 
       {view === "sources" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {onOpenUpload && (
+            <button onClick={onOpenUpload}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", marginBottom: 4, padding: "7px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.40 0.16 258)", background: "linear-gradient(180deg, oklch(0.55 0.16 252), oklch(0.46 0.16 258))", fontSize: 12.5, fontWeight: 600 }}>
+              + Upload documentation
+            </button>
+          )}
           {!sources && <div style={{ fontSize: 12.5, color: "var(--fg-4)" }}>Loading…</div>}
           {sources?.map((s) => (
             <button key={s.id} onClick={() => { if (s.kind === "wiki") onOpenSource(s.path); }}
@@ -87,6 +93,8 @@ export function BrowseModal({ view, user, onClose, onOpenSource }: {
                 <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{s.path}</div>
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {s.needs_metadata && <Pill size="xs" tone="warn">needs tags</Pill>}
+                {s.product && <Pill size="xs" tone="accent">{s.product}{s.product_version ? ` ${s.product_version}` : ""}</Pill>}
                 {s.mdm_vendor && <Pill size="xs" tone="accent">{s.mdm_vendor}</Pill>}
                 {s.data_platform && <Pill size="xs">{s.data_platform}</Pill>}
                 {s.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}

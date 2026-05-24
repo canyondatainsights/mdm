@@ -28,7 +28,7 @@ class SourceController extends Controller
             'updated' => optional($p->page_updated_at)->toDateString(),
         ]);
 
-        $raw = Source::orderBy('title')->get()->map(fn ($s) => [
+        $raw = Source::where('superseded', false)->orderBy('title')->get()->map(fn ($s) => [
             'id' => 'raw:'.$s->id,
             'kind' => 'raw',
             'title' => $s->title,
@@ -38,7 +38,11 @@ class SourceController extends Controller
             'data_platform' => $s->data_platform,
             'domain' => $s->domain,
             'scope' => $s->scope,
+            'product' => $s->product,
+            'product_version' => $s->product_version,
             'approved' => $s->approved,
+            'needs_metadata' => $s->needs_metadata,
+            'ingest_status' => $s->ingest_status,
         ]);
 
         return ['count' => $wiki->count() + $raw->count(), 'sources' => $wiki->concat($raw)->values()];

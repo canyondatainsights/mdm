@@ -40,8 +40,11 @@ class Ingestor
         return $results;
     }
 
-    /** @return array{path:string, status:string, chunks:int} */
-    public function ingestFile(string $abs, string $kind, ?string $root = null): array
+    /**
+     * @param  array<string,mixed>  $overrides  Explicit metadata (vendor/product/version/…) that wins over derivation.
+     * @return array{path:string, status:string, chunks:int}
+     */
+    public function ingestFile(string $abs, string $kind, ?string $root = null, array $overrides = []): array
     {
         $root = rtrim($root ?? config('mdm.kb_path'), '/');
         $rel = ltrim(str_replace($root, '', $abs), '/');
@@ -52,7 +55,7 @@ class Ingestor
         }
 
         $hash = md5($parsed['body']);
-        $meta = Metadata::resolve($rel, $parsed['front_matter'], $parsed['body']);
+        $meta = Metadata::resolve($rel, $parsed['front_matter'], $parsed['body'], $overrides);
         $section = $this->section($rel);
 
         $wikiPageId = null;
@@ -71,6 +74,8 @@ class Ingestor
                 'financial_model' => $meta['financial_model'],
                 'domain' => $meta['domain'],
                 'scope' => $meta['scope'],
+                'product' => $meta['product'],
+                'product_version' => $meta['product_version'],
                 'page_updated_at' => $meta['page_updated_at'],
                 'content_hash' => $hash,
             ])->save();
@@ -86,9 +91,30 @@ class Ingestor
                 'financial_model' => $meta['financial_model'],
                 'domain' => $meta['domain'],
                 'scope' => $meta['scope'],
+                'product' => $meta['product'],
+                'product_version' => $meta['product_version'],
+                // Held out of retrieval until a steward supplies vendor + product.
+                'needs_metadata' => empty($meta['mdm_vendor']) || empty($meta['product']),
+                'content_hash' => $hash,
+                'superseded' => false,
             ]);
             $source->save();
             $sourceId = $source->id;
+
+            // Dedupe — keep this (latest) copy; supersede older sources that are either the
+            // exact same content, or the same filename of the same product/vendor (a re-upload).
+            $base = '%/'.strtolower(basename($rel));
+            Source::where('id', '!=', $source->id)
+                ->where('superseded', false)
+                ->where(function ($w) use ($hash, $base, $meta) {
+                    $w->where('content_hash', $hash);
+                    if (! empty($meta['mdm_vendor']) && ! empty($meta['product'])) {
+                        $w->orWhere(fn ($w2) => $w2->whereRaw('lower(path) like ?', [$base])
+                            ->where('mdm_vendor', $meta['mdm_vendor'])
+                            ->where('product', $meta['product']));
+                    }
+                })
+                ->update(['superseded' => true]);
         }
 
         $chunks = $this->chunker->chunk($parsed['body']);
@@ -118,6 +144,8 @@ class Ingestor
                     'financial_model' => $meta['financial_model'],
                     'domain' => $meta['domain'],
                     'scope' => $meta['scope'],
+                    'product' => $meta['product'],
+                    'product_version' => $meta['product_version'],
                     'embedding' => new Vector($vectors[$i]),
                 ]);
             }

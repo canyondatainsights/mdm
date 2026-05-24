@@ -13,6 +13,7 @@ export interface Dimensions {
   data_platform: string[];
   financial_model: string[];
   domain: string[];
+  products?: Record<string, string[]>;
 }
 
 export interface Conversation {
@@ -31,6 +32,12 @@ export interface Citation {
   n: number;
   path: string;
   anchor: string | null;
+  title?: string | null;
+  origin?: string | null;
+  doc_type?: string | null;
+  product?: string | null;
+  product_version?: string | null;
+  date?: string | null;
 }
 
 export type Block =
@@ -58,8 +65,12 @@ export interface SourceListItem {
   data_platform: string | null;
   domain: string;
   scope: string;
+  product?: string | null;
+  product_version?: string | null;
   updated?: string | null;
   approved?: boolean;
+  needs_metadata?: boolean;
+  ingest_status?: string;
 }
 
 export interface SourceDetail {
