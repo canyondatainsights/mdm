@@ -34,71 +34,125 @@ function inline(text: string, onCite?: (n: number) => void): ReactNode[] {
   });
 }
 
+const cells = (l: string) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
+const isTableSep = (l?: string) => !!l && l.includes("|") && /^[\s|:-]*-[\s|:-]*$/.test(l);
+const isBullet = (l?: string) => !!l && /^\s*[-*]\s+/.test(l);
+const isOrdered = (l?: string) => !!l && /^\s*\d+\.\s+/.test(l);
+const isHeading = (l?: string) => !!l && /^#{1,6}\s+/.test(l);
+
+/**
+ * Line-based Markdown: headings, GFM tables, bullet/ordered lists, paragraphs, with
+ * inline bold/code/citations. Parses per line (not per blank-line block) so a heading
+ * immediately followed by a table — which the model emits — renders correctly.
+ */
 export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) => void }) {
-  const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/).filter((b) => b.trim() !== "");
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === "") { i++; continue; }
+
+    // Horizontal rule (section divider)
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      out.push(<hr key={key++} style={{ border: 0, borderTop: "1px solid var(--border)", margin: "2px 0" }} />);
+      i++;
+      continue;
+    }
+
+    // Heading
+    const h = line.match(/^(#{1,6})\s+(.+)$/);
+    if (h) {
+      const lvl = h[1].length;
+      out.push(
+        <div key={key++} style={{ fontSize: lvl <= 2 ? 15 : 14, fontWeight: 600, color: "var(--fg)", marginTop: 2 }}>
+          {inline(h[2], onCite)}
+        </div>,
+      );
+      i++;
+      continue;
+    }
+
+    // GFM table: a row line followed by a |---|---| separator
+    if (line.includes("|") && isTableSep(lines[i + 1])) {
+      const header = cells(line);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim() !== "") {
+        rows.push(cells(lines[i]));
+        i++;
+      }
+      out.push(
+        <div key={key++} style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+            <thead>
+              <tr>
+                {header.map((c, k) => (
+                  <th key={k} style={{ textAlign: "left", padding: "7px 11px", background: "var(--bg-2)", borderBottom: "1px solid var(--border-strong)", fontWeight: 600, color: "var(--fg)", whiteSpace: "nowrap" }}>{inline(c, onCite)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, k) => (
+                <tr key={k}>
+                  {r.map((c, m) => (
+                    <td key={m} style={{ padding: "7px 11px", verticalAlign: "top", borderTop: "1px solid var(--border)", color: "var(--fg-2)" }}>{inline(c, onCite)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+
+    // Unordered list
+    if (isBullet(line)) {
+      const items: string[] = [];
+      while (i < lines.length && isBullet(lines[i])) { items.push(lines[i].replace(/^\s*[-*]\s+/, "")); i++; }
+      out.push(
+        <ul key={key++} style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+          {items.map((it, j) => <li key={j}>{inline(it, onCite)}</li>)}
+        </ul>,
+      );
+      continue;
+    }
+
+    // Ordered list
+    if (isOrdered(line)) {
+      const items: string[] = [];
+      while (i < lines.length && isOrdered(lines[i])) { items.push(lines[i].replace(/^\s*\d+\.\s+/, "")); i++; }
+      out.push(
+        <ol key={key++} style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+          {items.map((it, j) => <li key={j} style={{ paddingLeft: 4 }}>{inline(it, onCite)}</li>)}
+        </ol>,
+      );
+      continue;
+    }
+
+    // Paragraph: consecutive plain lines (soft-wrapped) until a blank/special line
+    const para: string[] = [];
+    while (
+      i < lines.length && lines[i].trim() !== "" &&
+      !isHeading(lines[i]) && !isBullet(lines[i]) && !isOrdered(lines[i]) &&
+      !/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i]) &&
+      !(lines[i].includes("|") && isTableSep(lines[i + 1]))
+    ) {
+      para.push(lines[i]);
+      i++;
+    }
+    if (para.length) {
+      out.push(<p key={key++} style={{ margin: 0 }}>{inline(para.join(" "), onCite)}</p>);
+    }
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 14, lineHeight: 1.6, color: "var(--fg-2)" }}>
-      {blocks.map((block, i) => {
-        const lines = block.split("\n");
-
-        // GFM table: a header row, a |---|---| separator, then body rows.
-        if (lines.length >= 2 && lines[0].includes("|") && lines[1].includes("|") && /^[\s|:-]*-[\s|:-]*$/.test(lines[1])) {
-          const cells = (l: string) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
-          const header = cells(lines[0]);
-          const rows = lines.slice(2).filter((l) => l.includes("|")).map(cells);
-          return (
-            <div key={i} style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
-              <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    {header.map((c, k) => (
-                      <th key={k} style={{ textAlign: "left", padding: "7px 11px", background: "var(--bg-2)", borderBottom: "1px solid var(--border-strong)", fontWeight: 600, color: "var(--fg)", whiteSpace: "nowrap" }}>{inline(c, onCite)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, k) => (
-                    <tr key={k}>
-                      {r.map((c, m) => (
-                        <td key={m} style={{ padding: "7px 11px", verticalAlign: "top", borderTop: "1px solid var(--border)", color: "var(--fg-2)" }}>{inline(c, onCite)}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        }
-
-        const h = block.match(/^(#{1,6})\s+(.+)$/);
-        if (h) {
-          const lvl = h[1].length;
-          return (
-            <div key={i} style={{ fontSize: lvl <= 2 ? 15 : 14, fontWeight: 600, color: "var(--fg)", marginTop: 2 }}>
-              {inline(h[2], onCite)}
-            </div>
-          );
-        }
-
-        if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
-          return (
-            <ul key={i} style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-              {lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*[-*]\s+/, ""), onCite)}</li>)}
-            </ul>
-          );
-        }
-
-        if (lines.every((l) => /^\s*\d+\.\s+/.test(l))) {
-          return (
-            <ol key={i} style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-              {lines.map((l, j) => <li key={j} style={{ paddingLeft: 4 }}>{inline(l.replace(/^\s*\d+\.\s+/, ""), onCite)}</li>)}
-            </ol>
-          );
-        }
-
-        return <p key={i} style={{ margin: 0 }}>{inline(block, onCite)}</p>;
-      })}
+      {out}
     </div>
   );
 }
