@@ -95,6 +95,76 @@ return [
         ],
     ],
 
+    // Documentation crawler profiles (php artisan kb:crawl <vendor>). Each profile names the
+    // sitemap(s), path patterns to exclude, and a `sections` map (first matching URL path segment
+    // => [product|null, domain]) that BOTH selects which pages to crawl (targeted scope) and
+    // classifies them. Crawled pages are tagged data_platform=<platform>, mdm_vendor=null so they
+    // surface in any conversation on that platform.
+    'crawlers' => [
+        'databricks' => [
+            'platform' => 'databricks',
+            'sitemaps' => ['https://docs.databricks.com/aws/en/sitemap.xml'], // aws/en (gcp ~dup; skip ja/pt)
+            'exclude' => ['/release-notes/', '/error-messages/', '/archive/', '?s=', '/_static/'],
+            'sections' => [
+                'unity-catalog' => ['Databricks Unity Catalog', 'data-governance'],
+                'catalogs' => ['Databricks Unity Catalog', 'data-governance'],
+                'data-governance' => ['Databricks Unity Catalog', 'data-governance'],
+                'security' => [null, 'data-governance'],
+                'lakehouse-monitoring' => [null, 'data-quality'],
+                'data-quality' => [null, 'data-quality'],
+                'delta-live-tables' => ['Databricks Delta Live Tables', 'data-quality'],
+                'dlt' => ['Databricks Delta Live Tables', 'data-quality'],
+                'delta' => ['Delta Lake', 'general'],
+                'delta-sharing' => [null, 'general'],
+                'sql' => ['Databricks SQL', 'general'],
+                'structured-streaming' => [null, 'general'],
+                'ingestion' => [null, 'general'],
+                'machine-learning' => ['Databricks Machine Learning', 'general'],
+                'lakehouse' => ['Databricks Lakehouse Platform', 'general'],
+            ],
+        ],
+        'snowflake' => [
+            'platform' => 'snowflake',
+            'sitemaps' => ['https://docs.snowflake.com/en/sitemap.xml'],
+            'exclude' => ['/sql-reference', '/INCLUDE/', '/DRAFT/', '/PREVIEW/', '/release-notes/', '/api-reference', '/migrations/'],
+            // Snowflake's topics live in leaf names under user-guide/developer-guide (not directory
+            // segments), so these use substring `match` patterns (evaluated in order, first wins) to
+            // mirror the Databricks categories: governance, data-quality, sharing, ingestion,
+            // streaming, ML, tables, SQL/warehouse, developer.
+            'sections' => [
+                'data-governance' => ['product' => 'Snowflake Horizon', 'domain' => 'data-governance', 'match' => [
+                    'governance', 'access-control', 'masking', 'row-access', 'column-level', 'object-tag', 'tag-based',
+                    'classification', 'privacy', 'trust-center', 'authentication', 'oauth', 'scim', 'network-polic',
+                    'encryption', 'key-pair', 'rbac', 'security',
+                ]],
+                'data-quality' => ['product' => null, 'domain' => 'data-quality', 'match' => [
+                    'data-quality', 'data-metric', 'dmf',
+                ]],
+                'data-sharing' => ['product' => 'Snowflake Data Sharing', 'domain' => 'general', 'match' => [
+                    'data-sharing', 'sharing', 'listing', 'data-exchange', 'collaboration', 'clean-room', 'cleanroom',
+                ]],
+                'ingestion' => ['product' => null, 'domain' => 'general', 'match' => [
+                    'snowpipe', 'data-load', 'kafka', 'ingest', 'connector',
+                ]],
+                'streaming' => ['product' => 'Snowflake Dynamic Tables', 'domain' => 'general', 'match' => [
+                    'streams', 'streaming', 'dynamic-table',
+                ]],
+                'machine-learning' => ['product' => 'Snowflake Cortex', 'domain' => 'general', 'match' => [
+                    'cortex', 'ml-function', 'snowflake-ml',
+                ]],
+                'tables' => ['product' => null, 'domain' => 'general', 'match' => [
+                    'iceberg', 'external-table', 'hybrid-table', 'tables',
+                ]],
+                'sql-warehouse' => ['product' => 'Snowflake Data Warehouse', 'domain' => 'general', 'match' => [
+                    'warehouse', 'querying', 'performance', 'search-optimization', 'clustering', 'views',
+                ]],
+                'developer' => ['product' => 'Snowpark', 'domain' => 'general', 'match' => [
+                    'developer-guide', 'snowpark', 'snowflake-cli', 'stored-procedure', 'udf',
+                ]],
+            ],
+        ],
+    ],
+
     // Phrases that signal the user wants to enrich the KB (creates a stewardship task).
     'enrichment_triggers' => [
         'capture this to the wiki',
