@@ -34,19 +34,22 @@ free_port 8001
 log "starting embeddings sidecar :8001"
 ( cd "$ROOT/embeddings" && nohup ./.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8001 >/tmp/mdm-sidecar.log 2>&1 & )
 
-# 3. API — built-in server with raised upload limits, run from public/ (router uses cwd)
+# 3. API — built-in server with raised upload limits, run from public/ (router uses cwd).
+#    Bulk uploads: post_max_size + max_file_uploads must hold many large PDFs at once.
 free_port 8011
 log "starting API :8011"
 ( cd "$ROOT/api/public" && nohup "$PHP" \
-    -d post_max_size=160M -d upload_max_filesize=128M -d memory_limit=1024M -d max_execution_time=300 \
+    -d post_max_size=1024M -d upload_max_filesize=128M -d memory_limit=2048M \
+    -d max_file_uploads=200 -d max_input_time=600 -d max_execution_time=600 \
     -S 127.0.0.1:8011 \
     "$ROOT/api/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php" \
     >/tmp/mdm-serve-8011.log 2>&1 & )
 
-# 4. Queue worker (ingests uploaded sources; needs more memory for large PDFs)
+# 4. Queue worker — self-healing loop (queue:work exits periodically; restart it so
+#    uploads/ingestion never silently stall). Needs more memory for large PDFs.
 pkill -f "artisan queue:work" 2>/dev/null || true
-log "starting queue worker"
-( cd "$ROOT/api" && nohup "$PHP" -d memory_limit=1024M artisan queue:work --tries=1 --timeout=600 >/tmp/mdm-worker.log 2>&1 & )
+log "starting queue worker (self-healing)"
+( cd "$ROOT/api" && PHP_BIN="$PHP" nohup bash -c 'while true; do "$PHP_BIN" -d memory_limit=2048M artisan queue:work --tries=1 --timeout=600 >>/tmp/mdm-worker.log 2>&1; sleep 1; done' >/dev/null 2>&1 & )
 
 # 5. Web
 free_port 3000
