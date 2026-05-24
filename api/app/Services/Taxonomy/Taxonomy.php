@@ -43,7 +43,7 @@ class Taxonomy
             return self::$memo = $fromConfig;
         }
 
-        $dims = ['mdm_vendor' => [], 'data_platform' => [], 'financial_model' => [], 'domain' => []];
+        $dims = ['mdm_vendor' => [], 'data_platform' => [], 'financial_model' => [], 'domain' => [], 'extension' => []];
         $products = [];
         foreach ($rows as $r) {
             if ($r->type === 'product') {

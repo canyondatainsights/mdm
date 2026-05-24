@@ -36,6 +36,7 @@ class TaxonomyTermResource extends Resource
         'data_platform' => 'Data platform',
         'financial_model' => 'Financial model',
         'domain' => 'Data domain / subject',
+        'extension' => 'Extension / vertical',
         'product' => 'Product (per vendor)',
     ];
 

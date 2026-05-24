@@ -10,11 +10,12 @@ class Conversation extends Model
 {
     protected $fillable = [
         'user_id', 'title', 'mdm_vendor', 'data_platform',
-        'financial_model', 'domains', 'pii_redacted', 'pinned',
+        'financial_model', 'domains', 'extensions', 'pii_redacted', 'pinned',
     ];
 
     protected $casts = [
         'domains' => 'array',
+        'extensions' => 'array',
         'pii_redacted' => 'boolean',
         'pinned' => 'boolean',
     ];
@@ -37,6 +38,8 @@ class Conversation extends Model
             'data_platform' => $this->data_platform,
             'financial_model' => $this->financial_model,
             'domains' => $this->domains ?: ['general'],
+            // Included extensions (verticals/add-ons). null = not chosen, [] = core-only.
+            'extensions' => $this->extensions,
         ];
     }
 }

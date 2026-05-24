@@ -11,7 +11,7 @@ class Source extends Model
     protected $fillable = [
         'title', 'doc_type', 'path', 'owner', 'pages', 'tags',
         'mdm_vendor', 'data_platform', 'financial_model',
-        'domain', 'scope', 'product', 'product_version', 'approved', 'needs_metadata', 'uploaded_by',
+        'domain', 'scope', 'product', 'product_version', 'extension', 'approved', 'needs_metadata', 'uploaded_by',
         'ingest_status', 'content_hash', 'superseded',
     ];
 
@@ -44,7 +44,7 @@ class Source extends Model
             // New uploads land pending — a steward approves them before they're used in answers.
             $s->approved = false;
         }
-        foreach (['mdm_vendor', 'data_platform', 'domain', 'scope', 'product', 'product_version'] as $k) {
+        foreach (['mdm_vendor', 'data_platform', 'domain', 'scope', 'product', 'product_version', 'extension'] as $k) {
             if (! empty($overrides[$k])) {
                 $s->{$k} = $overrides[$k];
             }
