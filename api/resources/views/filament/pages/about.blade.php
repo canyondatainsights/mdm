@@ -1,6 +1,6 @@
 <x-filament-panels::page>
     <p class="text-sm text-gray-500 dark:text-gray-400 -mt-2">
-        Sidecar is a vendor-isolated MDM knowledge platform — a Next.js chat UI over a Laravel + Filament
+        Sidecar is a vendor-isolated knowledge platform — a Next.js chat UI over a Laravel + Filament
         backend, answering from a curated, retrieval-augmented knowledge base.
     </p>
 
