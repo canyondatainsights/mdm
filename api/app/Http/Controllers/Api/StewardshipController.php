@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ApplyStewardshipTask;
 use App\Models\AuditLog;
 use App\Models\StewardshipTask;
 use Illuminate\Http\Request;
@@ -29,7 +30,9 @@ class StewardshipController extends Controller
         ]);
         AuditLog::record('stewardship.approved', ['task_id' => $task->id], 'StewardshipTask', (string) $task->id);
 
-        // The write-back loop (apply diff -> git commit -> reindex) runs as a queued job.
+        // Apply the approved content to the KB, git commit, and re-index chunks.
+        ApplyStewardshipTask::dispatch($task);
+
         return response()->json(['ok' => true, 'status' => 'approved']);
     }
 
