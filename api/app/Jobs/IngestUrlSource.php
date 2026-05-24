@@ -40,7 +40,9 @@ class IngestUrlSource implements ShouldQueue
 
         try {
             try {
-                ['title' => $title, 'text' => $text] = $fetcher->fetch($this->url);
+                $fetched = $fetcher->fetch($this->url, withMarkdown: true);
+                $title = $fetched['title'];
+                $body = $fetched['markdown'] ?? $fetched['text']; // structured markdown, flat text fallback
             } catch (\Throwable $e) {
                 Source::where('path', $this->targetRel)->update(['ingest_status' => 'failed']);
                 AuditLog::record('source.url_failed', ['url' => $this->url, 'error' => $e->getMessage()]);
@@ -50,7 +52,7 @@ class IngestUrlSource implements ShouldQueue
 
             $abs = rtrim($this->root, '/').'/'.$this->targetRel;
             @mkdir(dirname($abs), 0775, true);
-            file_put_contents($abs, $this->buildMarkdown($title, $text));
+            file_put_contents($abs, $this->buildMarkdown($title, $body));
 
             $result = $ingestor->ingestFile($abs, 'raw', $this->root, $this->overrides);
 
