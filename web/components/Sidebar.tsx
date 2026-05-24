@@ -3,9 +3,11 @@
 import { Icon } from "@/lib/icons";
 import type { Conversation, User } from "@/lib/types";
 import { useState } from "react";
-import { IconButton, TONE_MAP, domainTone } from "./ui";
+import { HierPill, IconButton, TONE_MAP, subjectTone, vendorTone } from "./ui";
 import { SidecarMark, SidecarWordmark, SidecarSlogan } from "./Logo";
 import { ConfirmDialog } from "./ConfirmDialog";
+
+const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
 
 const NAV = [
   { key: "chat", icon: "sparkle", label: "Ask the hub", tone: "accent" },
@@ -88,8 +90,8 @@ export function Sidebar({
           <div style={{ padding: "6px 10px 4px", fontSize: 10.5, fontWeight: 600, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recent</div>
           {filtered.length === 0 && <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--fg-4)" }}>No conversations yet.</div>}
           {filtered.map((c) => {
-            const tone = domainTone(c.domains?.[0]);
-            const t = TONE_MAP[tone];
+            const vt = vendorTone(c.mdm_vendor, 1);
+            const subj = (c.domains ?? []).filter((d) => d !== "general")[0];
             const active = c.id === activeId;
             const showClose = hovered === c.id || active;
             return (
@@ -98,12 +100,12 @@ export function Sidebar({
                 <button onClick={() => onSelect(c.id)}
                   style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 30px 8px 14px", borderRadius: 7,
                     background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
-                  <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? t.fg : t.bd }} />
-                  <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{c.title}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--fg-3)" }}>
-                    <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, color: t.fg, background: t.bg, border: `1px solid ${t.bd}`, padding: "0 5px", borderRadius: 3 }}>
-                      {c.mdm_vendor ?? "—"} · {c.data_platform ?? "—"}
-                    </span>
+                  <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? vt.fg : vt.border }} />
+                  <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>{c.title}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                    {c.mdm_vendor && <HierPill level={1} tone={vt} label={cap(c.mdm_vendor)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
+                    {c.data_platform && <HierPill level={1} tone={vendorTone(c.data_platform, 1)} label={cap(c.data_platform)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
+                    {subj && <HierPill level={3} dot={false} tone={subjectTone(subj, 2)} label={cap(subj)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
                   </div>
                 </button>
                 {showClose && (

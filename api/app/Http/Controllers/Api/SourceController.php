@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Chunk;
 use App\Models\Source;
 use App\Models\WikiPage;
+use App\Services\Kb\SourceTrust;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,27 +49,47 @@ class SourceController extends Controller
         return ['count' => $wiki->count() + $raw->count(), 'sources' => $wiki->concat($raw)->values()];
     }
 
-    /** Source detail for the inspector: metadata + excerpt + related. */
-    public function show(string $path)
+    /** Source detail for the inspector: metadata + hierarchy + excerpt + origin URL + trust + related. */
+    public function show(string $path, SourceTrust $trust)
     {
         $rel = ltrim($path, '/');
         $page = WikiPage::where('path', $rel)->first();
+        $source = $page ? null : Source::where('path', $rel)->first();
+        $entity = $page ?? $source;
 
         $chunks = Chunk::where('source_path', $rel)->orderBy('chunk_index')->limit(3)->get();
 
+        $vendor = $entity?->mdm_vendor;
+        $platform = $entity?->data_platform;
+        $domain = $entity?->domain;
+        $product = $entity?->product;
+
+        $related = $page
+            ? WikiPage::where('section', $page->section)->where('path', '!=', $rel)->limit(5)->get(['title', 'path'])
+            : ($source
+                ? Source::where('superseded', false)->where('path', '!=', $rel)
+                    ->where('mdm_vendor', $source->mdm_vendor)->where('data_platform', $source->data_platform)
+                    ->limit(5)->get(['title', 'path'])
+                : collect());
+
         return [
             'path' => $rel,
-            'title' => $page?->title ?? basename($rel),
-            'doc_type' => 'MD',
-            'mdm_vendor' => $page?->mdm_vendor,
-            'data_platform' => $page?->data_platform,
-            'domain' => $page?->domain,
-            'scope' => $page?->scope,
-            'updated' => optional($page?->page_updated_at)->toDateString(),
-            'tags' => array_values(array_filter([$page?->mdm_vendor, $page?->data_platform, $page?->domain])),
+            'title' => $entity?->title ?? basename($rel),
+            'doc_type' => $page ? 'MD' : ($source?->doc_type ?? 'DOC'),
+            'mdm_vendor' => $vendor,
+            'data_platform' => $platform,
+            'financial_model' => $entity?->financial_model,
+            'domain' => $domain,
+            'product' => $product,
+            'extension' => $source?->extension,
+            'scope' => $entity?->scope,
+            'updated' => optional($page?->page_updated_at ?? $source?->created_at)->toDateString(),
+            'origin' => $source?->owner, // original URL for crawled/URL sources
+            'approved' => $source ? (bool) $source->approved : true,
+            'tags' => array_values(array_filter([$vendor, $platform, $domain, $product])),
             'excerpt' => $chunks->map(fn ($c) => ['anchor' => $c->anchor, 'text' => $c->content])->values(),
-            'related' => WikiPage::where('section', $page?->section)
-                ->where('path', '!=', $rel)->limit(5)->get(['title', 'path']),
+            'related' => $related,
+            'trust' => $source ? $trust->score($source) : null,
         ];
     }
 }

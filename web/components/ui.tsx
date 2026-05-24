@@ -61,9 +61,10 @@ export function IconButton({
 const DOC_COLORS: Record<string, [string, string]> = {
   PDF: ["oklch(0.96 0.04 27)", "oklch(0.50 0.16 27)"],
   PPTX: ["oklch(0.96 0.04 50)", "oklch(0.50 0.15 50)"],
-  DOCX: ["oklch(0.96 0.04 42)", "oklch(0.52 0.15 33)"],
+  DOCX: ["oklch(0.96 0.04 252)", "oklch(0.45 0.14 252)"],
   XLSX: ["oklch(0.96 0.04 155)", "oklch(0.42 0.13 155)"],
-  Confluence: ["oklch(0.96 0.04 42)", "oklch(0.52 0.15 33)"],
+  Confluence: ["oklch(0.96 0.04 252)", "oklch(0.45 0.14 252)"],
+  URL: ["oklch(0.95 0.04 200)", "oklch(0.48 0.12 205)"],
   MD: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
   TXT: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
   SQL: ["oklch(0.95 0.04 230)", "oklch(0.48 0.13 250)"],
@@ -97,7 +98,7 @@ export function GradientAvatar({ initials, size = 30 }: { initials: string; size
     <div
       style={{
         width: size, height: size, borderRadius: "50%",
-        background: "linear-gradient(135deg, oklch(0.66 0.16 42), oklch(0.58 0.16 35))",
+        background: "linear-gradient(135deg, var(--accent), var(--accent-2))",
         color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center",
         fontSize: size * 0.4, fontWeight: 600, letterSpacing: "0.02em", flexShrink: 0,
       }}
@@ -127,4 +128,81 @@ export function domainTone(domain?: string | null): string {
     case "healthcare": return "rose";
     default: return "green";
   }
+}
+
+/* ---- Vendor / platform / subject color system (per design handoff) ----
+   Each vendor/platform/model owns a hue; the hierarchy level (1 Vendor → 2 Product → 3 Domain →
+   4 Extension) selects progressively lighter, lower-chroma tints of that hue. Subjects/domains have
+   their own hues. `vendorTone`/`subjectTone` return {fg,bg,border}; render with <HierPill>. */
+export type ToneColors = { fg: string; bg: string; border: string };
+
+export const VENDOR_HUES: Record<string, { hue: number; kind: "vendor" | "platform" | "model" }> = {
+  informatica: { hue: 28, kind: "vendor" }, oracle: { hue: 18, kind: "vendor" }, sap: { hue: 248, kind: "vendor" },
+  reltio: { hue: 295, kind: "vendor" }, ibm: { hue: 215, kind: "vendor" }, semarchy: { hue: 155, kind: "vendor" },
+  stibo: { hue: 75, kind: "vendor" }, ataccama: { hue: 330, kind: "vendor" }, profisee: { hue: 265, kind: "vendor" },
+  snowflake: { hue: 200, kind: "platform" }, databricks: { hue: 12, kind: "platform" }, bigquery: { hue: 260, kind: "platform" },
+  redshift: { hue: 5, kind: "platform" }, synapse: { hue: 178, kind: "platform" },
+  "isda-cdm": { hue: 135, kind: "model" }, fpml: { hue: 170, kind: "model" }, fibo: { hue: 115, kind: "model" },
+};
+
+export const SUBJECT_HUES: Record<string, number> = {
+  customer: 252, product: 295, supplier: 195, vendor: 178, finance: 135, healthcare: 15,
+  "data-governance": 262, "data-quality": 70, "data-profiling": 90, parsing: 300, "address-verification": 210,
+  general: 60,
+};
+
+const HUE_LEVELS: Record<number, { fgL: number; fgC: number; bgL: number; bgC: number; bdL: number; bdC: number }> = {
+  1: { fgL: 0.42, fgC: 0.14, bgL: 0.93, bgC: 0.07, bdL: 0.76, bdC: 0.084 },
+  2: { fgL: 0.48, fgC: 0.10, bgL: 0.96, bgC: 0.05, bdL: 0.84, bdC: 0.06 },
+  3: { fgL: 0.55, fgC: 0.06, bgL: 0.98, bgC: 0.03, bdL: 0.90, bdC: 0.036 },
+  4: { fgL: 0.55, fgC: 0.04, bgL: 0.99, bgC: 0.02, bdL: 0.92, bdC: 0.02 },
+};
+
+function hueTone(hue: number | null, level = 1): ToneColors {
+  if (hue == null) return { fg: "var(--fg-2)", bg: "var(--bg-3)", border: "var(--border)" };
+  const L = HUE_LEVELS[level] ?? HUE_LEVELS[1];
+  return {
+    fg: `oklch(${L.fgL} ${L.fgC} ${hue})`,
+    bg: `oklch(${L.bgL} ${L.bgC} ${hue})`,
+    border: `oklch(${L.bdL} ${L.bdC} ${hue})`,
+  };
+}
+
+export function vendorTone(key?: string | null, level = 1): ToneColors {
+  return hueTone(key ? (VENDOR_HUES[key]?.hue ?? null) : null, level);
+}
+export function subjectTone(domain?: string | null, level = 2): ToneColors {
+  return hueTone(domain ? (SUBJECT_HUES[domain] ?? null) : null, level);
+}
+
+/** A hierarchy pill. L1 = uppercase mono w/ dot; L2–3 = rounded pill; L4 = dot + text, no chrome. */
+export function HierPill({
+  label, tone, level = 1, dot = true, style,
+}: {
+  label: ReactNode; tone: ToneColors; level?: number; dot?: boolean; style?: CSSProperties;
+}) {
+  if (level >= 4) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 500, color: tone.fg, whiteSpace: "nowrap", ...style }}>
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: tone.fg, flexShrink: 0 }} />
+        {label}
+      </span>
+    );
+  }
+  const upper = level === 1;
+  return (
+    <span
+      className={upper ? "mono" : undefined}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        background: tone.bg, color: tone.fg, border: `1px solid ${tone.border}`,
+        borderRadius: 999, padding: "2px 8px", fontSize: upper ? 10.5 : 11.5, fontWeight: 600,
+        textTransform: upper ? "uppercase" : "none", letterSpacing: upper ? "0.05em" : "0",
+        lineHeight: 1.3, whiteSpace: "nowrap", ...style,
+      }}
+    >
+      {dot && <span style={{ width: 6, height: 6, borderRadius: "50%", background: tone.fg, flexShrink: 0 }} />}
+      {label}
+    </span>
+  );
 }

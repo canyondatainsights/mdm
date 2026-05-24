@@ -98,12 +98,18 @@ export interface SourceDetail {
   doc_type: string;
   mdm_vendor: string | null;
   data_platform: string | null;
+  financial_model: string | null;
   domain: string | null;
+  product: string | null;
+  extension: string | null;
   scope: string | null;
   updated: string | null;
+  origin: string | null;
+  approved: boolean;
   tags: string[];
   excerpt: { anchor: string | null; text: string }[];
   related: { title: string; path: string }[];
+  trust: { score: number; level: "low" | "medium" | "high"; factors: { label: string; ok: boolean }[] } | null;
 }
 
 export interface SettingsInfo {

@@ -5,7 +5,8 @@ import { Icon } from "@/lib/icons";
 import type { Citation, Conversation, Message } from "@/lib/types";
 import { Component, type ReactNode, useEffect, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
-import { DocTypeBadge, IconButton, Pill } from "./ui";
+import { SidecarFace } from "./Logo";
+import { DocTypeBadge, HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "—");
 
@@ -102,12 +103,12 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
   };
   return (
     <div style={{ display: "flex", padding: "12px 0", gap: 12 }}>
-      <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 7, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-sm)" }}>
-        <Icon name="sparkle" size={15} stroke={2} />
+      <div style={{ flexShrink: 0, paddingTop: 1 }}>
+        <SidecarFace size={28} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>MDM Assistant</span>
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em" }}>Sidecar</span>
           {confidence && <Pill tone={confidence === "high" ? "ok" : confidence === "low" ? "warn" : "neutral"} size="xs" icon={confidence === "high" ? "check" : undefined}>{cap(confidence)} confidence</Pill>}
         </div>
         {text ? (
@@ -226,9 +227,12 @@ export function ChatArea({
         <span style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{conversation.title}</span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
           {conversation.pii_redacted && <Pill icon="shield" tone="ok" size="xs">PII redacted</Pill>}
-          <Pill icon="database" tone="accent" size="xs">{cap(conversation.mdm_vendor)}</Pill>
-          <Pill icon="graph" size="xs">{cap(conversation.data_platform)}</Pill>
-          {conversation.financial_model && <Pill size="xs">{cap(conversation.financial_model)}</Pill>}
+          {conversation.mdm_vendor && <HierPill level={1} tone={vendorTone(conversation.mdm_vendor, 1)} label={cap(conversation.mdm_vendor)} />}
+          {conversation.data_platform && <HierPill level={1} tone={vendorTone(conversation.data_platform, 1)} label={cap(conversation.data_platform)} />}
+          {conversation.financial_model && <HierPill level={1} tone={vendorTone(conversation.financial_model, 1)} label={cap(conversation.financial_model)} />}
+          {(conversation.domains ?? []).filter((d) => d !== "general").slice(0, 2).map((d) => (
+            <HierPill key={d} level={3} dot={false} tone={subjectTone(d, 2)} label={cap(d)} />
+          ))}
           <div style={{ width: 1, height: 18, background: "var(--border)", margin: "0 4px" }} />
           <IconButton icon="panel" label="Toggle sources panel" onClick={onToggleInspector} active={inspectorOpen} />
         </div>
@@ -285,7 +289,8 @@ export function ChatArea({
             />
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
               {onAttach && <IconButton icon="paperclip" label="Attach a source to the KB" onClick={onAttach} />}
-              <Pill tone="accent" size="xs" icon="database">{cap(conversation.mdm_vendor)} · {cap(conversation.data_platform)}</Pill>
+              {conversation.mdm_vendor && <HierPill level={1} tone={vendorTone(conversation.mdm_vendor, 1)} label={cap(conversation.mdm_vendor)} />}
+              {conversation.data_platform && <HierPill level={1} tone={vendorTone(conversation.data_platform, 1)} label={cap(conversation.data_platform)} />}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{input.length} / 8,000</span>
                 {streaming ? (

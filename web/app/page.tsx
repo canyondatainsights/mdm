@@ -21,7 +21,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [openSource, setOpenSource] = useState<string | null>(null);
 
   const [modal, setModal] = useState<null | "stacklock" | "settings" | "browse" | "upload">(null);

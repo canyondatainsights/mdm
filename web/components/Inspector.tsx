@@ -4,7 +4,15 @@ import { api } from "@/lib/api";
 import { Icon } from "@/lib/icons";
 import type { SourceDetail } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { DocTypeBadge, IconButton, Pill } from "./ui";
+import { DocTypeBadge, HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
+
+const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
+
+const TRUST_TONE = {
+  high: { fg: "var(--ok)", bg: "oklch(0.97 0.03 155)", border: "oklch(0.88 0.05 155)" },
+  medium: { fg: "var(--fg-2)", bg: "var(--bg-3)", border: "var(--border)" },
+  low: { fg: "var(--warn)", bg: "oklch(0.97 0.04 80)", border: "oklch(0.90 0.05 80)" },
+} as const;
 
 export function Inspector({ path, onClose }: { path: string | null; onClose: () => void }) {
   const [src, setSrc] = useState<SourceDetail | null>(null);
@@ -12,10 +20,12 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!path) return;
+    if (!path) { setSrc(null); return; }
     setLoading(true);
     api.source(path).then(setSrc).catch(() => setSrc(null)).finally(() => setLoading(false));
   }, [path]);
+
+  const vt = vendorTone(src?.mdm_vendor ?? src?.data_platform, 2);
 
   return (
     <aside style={{ width: 380, flexShrink: 0, borderLeft: "1px solid var(--border)", background: "var(--bg-2)", display: "flex", flexDirection: "column", height: "100%" }}>
@@ -26,11 +36,28 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
           <div style={{ marginLeft: "auto" }}><IconButton icon="panel" label="Close" onClick={onClose} /></div>
         </div>
         {src && (
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-            <DocTypeBadge type={src.doc_type} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>{src.title}</div>
-              <div style={{ fontSize: 11.5, color: "var(--fg-3)" }}>{src.path}{src.updated ? ` · Updated ${src.updated}` : ""}</div>
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <DocTypeBadge type={src.doc_type} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>{src.title}</div>
+                <div style={{ fontSize: 11.5, color: "var(--fg-3)" }}>{src.path}{src.updated ? ` · ${src.updated}` : ""}</div>
+                {src.origin && (
+                  <a href={src.origin} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11.5, color: "var(--accent-2)", wordBreak: "break-all" }}>
+                    <Icon name="external" size={12} /> {src.origin}
+                  </a>
+                )}
+              </div>
+            </div>
+            {/* vendor → product → domain → extension hierarchy */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
+              {src.mdm_vendor && <HierPill level={1} tone={vendorTone(src.mdm_vendor, 1)} label={cap(src.mdm_vendor)} />}
+              {src.data_platform && <HierPill level={1} tone={vendorTone(src.data_platform, 1)} label={cap(src.data_platform)} />}
+              {src.financial_model && <HierPill level={1} tone={vendorTone(src.financial_model, 1)} label={cap(src.financial_model)} />}
+              {src.product && <HierPill level={2} tone={vt} label={src.product} />}
+              {src.domain && src.domain !== "general" && <HierPill level={3} dot={false} tone={subjectTone(src.domain, 2)} label={cap(src.domain)} />}
+              {src.extension && <HierPill level={4} tone={subjectTone(src.domain, 3)} label={cap(src.extension)} />}
             </div>
           </div>
         )}
@@ -49,8 +76,29 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
         {loading && <div style={{ fontSize: 12.5, color: "var(--fg-4)" }}>Loading…</div>}
         {src && tab === "source" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {src.trust && (() => {
+              const tt = TRUST_TONE[src.trust.level];
+              return (
+                <div style={{ border: `1px solid ${tt.border}`, background: tt.bg, borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Icon name="shield" size={14} style={{ color: tt.fg }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: tt.fg }}>Trust: {cap(src.trust.level)} · {src.trust.score}/100</span>
+                    <div style={{ marginLeft: "auto", width: 72, height: 6, borderRadius: 3, background: "var(--bg-3)", overflow: "hidden" }}>
+                      <div style={{ width: `${src.trust.score}%`, height: "100%", background: tt.fg }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {src.trust.factors.map((f, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: f.ok ? "var(--fg-2)" : "var(--fg-4)" }}>
+                        <Icon name={f.ok ? "check" : "close"} size={12} style={{ color: f.ok ? "var(--ok)" : "var(--fg-4)" }} />
+                        {f.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {src.tags.map((t) => <Pill key={t} size="xs">{t}</Pill>)}
               <Pill size="xs" tone={src.scope === "neutral" ? "neutral" : "ok"} icon="shield">{src.scope === "neutral" ? "Shared" : "Stack-specific"}</Pill>
             </div>
             {src.excerpt.map((e, i) => (
@@ -69,8 +117,9 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
         )}
         {src && tab === "lineage" && (
           <div style={{ fontSize: 12.5, color: "var(--fg-2)", lineHeight: 1.6 }}>
-            This source sits in the <strong>{src.mdm_vendor ?? "neutral"}</strong>
-            {src.data_platform ? <> / <strong>{src.data_platform}</strong></> : null} stack, domain <strong>{src.domain}</strong>.
+            This source sits in the <strong>{src.mdm_vendor ?? src.data_platform ?? "neutral"}</strong>
+            {src.mdm_vendor && src.data_platform ? <> / <strong>{src.data_platform}</strong></> : null} stack, domain <strong>{src.domain}</strong>
+            {src.extension ? <>, extension <strong>{src.extension}</strong></> : null}.
             It is only retrievable in conversations locked to a matching stack.
           </div>
         )}
@@ -78,7 +127,7 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {src.related.map((r) => (
               <div key={r.path} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 8 }}>
-                <DocTypeBadge type="MD" />
+                <DocTypeBadge type={src.doc_type} />
                 <div style={{ fontSize: 12.5, fontWeight: 500 }}>{r.title}</div>
               </div>
             ))}

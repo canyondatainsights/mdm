@@ -3,17 +3,39 @@
 // Sidecar brand — ported from design_handoff_mdm_knowledge_base 2/brand/sidecar/logos.jsx
 // V1 "Default" bubble mark + Manrope wordmark (dotless-i with a coral accent dot) + slogan.
 
-/** Speech-bubble host (dark) + small companion "sidecar" bubble (coral). */
+/** "Buddy Duo" — big coral host bubble + small dark companion "sidecar" bubble with dot eyes. */
 export function SidecarMark({ size = 26 }: { size?: number }) {
   const h = size;
-  const w = size * (140 / 92);
+  const w = size * (140 / 110);
   return (
-    <svg width={w} height={h} viewBox="0 0 140 92" fill="none" role="img" aria-label="Sidecar" style={{ display: "block", flexShrink: 0 }}>
+    <svg width={w} height={h} viewBox="0 0 140 110" fill="none" role="img" aria-label="Sidecar" style={{ display: "block", flexShrink: 0 }}>
       <path
-        d="M 16 4 L 64 4 Q 78 4 78 18 L 78 50 Q 78 64 64 64 L 34 64 L 22 84 L 26 64 L 16 64 Q 2 64 2 50 L 2 18 Q 2 4 16 4 Z"
+        d="M 16 6 L 70 6 Q 84 6 84 20 L 84 64 Q 84 78 70 78 L 36 78 L 22 100 L 28 78 L 16 78 Q 2 78 2 64 L 2 20 Q 2 6 16 6 Z"
+        fill="var(--accent)"
+      />
+      <path
+        d="M 102 30 L 128 30 Q 138 30 138 40 L 138 64 Q 138 74 128 74 L 118 74 L 112 90 L 116 74 L 102 74 Q 92 74 92 64 L 92 40 Q 92 30 102 30 Z"
         fill="var(--fg)"
       />
-      <rect x="90" y="24" width="48" height="42" rx="14" fill="var(--accent)" />
+      <circle cx="108" cy="52" r="3.2" fill="rgba(255,255,255,0.92)" />
+      <circle cx="122" cy="52" r="3.2" fill="rgba(255,255,255,0.92)" />
+    </svg>
+  );
+}
+
+/** "Friendly Face" — single coral bubble with eyes + smile. The assistant's avatar. */
+export function SidecarFace({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" role="img" aria-label="Sidecar" style={{ display: "block", flexShrink: 0 }}>
+      <path
+        d="M 14 8 L 86 8 Q 96 8 96 18 L 96 66 Q 96 76 86 76 L 52 76 L 38 94 L 42 76 L 14 76 Q 4 76 4 66 L 4 18 Q 4 8 14 8 Z"
+        fill="var(--accent)"
+      />
+      <circle cx="36" cy="36" r="6.5" fill="var(--bg)" />
+      <circle cx="64" cy="36" r="6.5" fill="var(--bg)" />
+      <circle cx="38" cy="38" r="3.2" fill="var(--fg)" />
+      <circle cx="66" cy="38" r="3.2" fill="var(--fg)" />
+      <path d="M 34 54 Q 50 66 66 54" stroke="var(--fg)" strokeWidth="4.5" strokeLinecap="round" fill="none" />
     </svg>
   );
 }

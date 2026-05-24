@@ -4,7 +4,9 @@ import { api, type StewardshipTask } from "@/lib/api";
 import type { SourceListItem, User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
-import { DocTypeBadge, Pill } from "./ui";
+import { DocTypeBadge, HierPill, Pill, subjectTone, vendorTone } from "./ui";
+
+const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
 
 type Stats = {
   wiki_pages: number; sources: number; chunks: number;
@@ -94,9 +96,10 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
               </div>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 {s.needs_metadata && <Pill size="xs" tone="warn">needs tags</Pill>}
-                {s.product && <Pill size="xs" tone="accent">{s.product}{s.product_version ? ` ${s.product_version}` : ""}</Pill>}
-                {s.mdm_vendor && <Pill size="xs" tone="accent">{s.mdm_vendor}</Pill>}
-                {s.data_platform && <Pill size="xs">{s.data_platform}</Pill>}
+                {s.mdm_vendor && <HierPill level={1} tone={vendorTone(s.mdm_vendor, 1)} label={cap(s.mdm_vendor)} />}
+                {s.data_platform && <HierPill level={1} tone={vendorTone(s.data_platform, 1)} label={cap(s.data_platform)} />}
+                {s.product && <HierPill level={2} tone={vendorTone(s.mdm_vendor ?? s.data_platform, 2)} label={`${s.product}${s.product_version ? ` ${s.product_version}` : ""}`} />}
+                {s.domain && s.domain !== "general" && <HierPill level={3} dot={false} tone={subjectTone(s.domain, 2)} label={cap(s.domain)} />}
                 {s.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}
               </div>
             </button>
