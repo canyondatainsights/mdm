@@ -105,15 +105,17 @@ return [
             'platform' => 'databricks',
             'sitemaps' => ['https://docs.databricks.com/aws/en/sitemap.xml'], // aws/en (gcp ~dup; skip ja/pt)
             'exclude' => ['/release-notes/', '/error-messages/', '/archive/', '?s=', '/_static/'],
+            // Order matters (first matching path segment wins): data-quality segments are listed
+            // before governance so a /data-governance/unity-catalog/data-quality-monitoring/ URL is
+            // tagged data-quality, not data-governance.
             'sections' => [
+                'data-quality-monitoring' => [null, 'data-quality'],
+                'lakehouse-monitoring' => [null, 'data-quality'],
+                'ldp' => ['Databricks Delta Live Tables', 'data-quality'], // Lakeflow Declarative Pipelines (expectations/constraints)
                 'unity-catalog' => ['Databricks Unity Catalog', 'data-governance'],
                 'catalogs' => ['Databricks Unity Catalog', 'data-governance'],
                 'data-governance' => ['Databricks Unity Catalog', 'data-governance'],
                 'security' => [null, 'data-governance'],
-                'lakehouse-monitoring' => [null, 'data-quality'],
-                'data-quality' => [null, 'data-quality'],
-                'delta-live-tables' => ['Databricks Delta Live Tables', 'data-quality'],
-                'dlt' => ['Databricks Delta Live Tables', 'data-quality'],
                 'delta' => ['Delta Lake', 'general'],
                 'delta-sharing' => [null, 'general'],
                 'sql' => ['Databricks SQL', 'general'],
