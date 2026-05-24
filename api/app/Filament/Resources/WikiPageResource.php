@@ -80,7 +80,6 @@ class WikiPageResource extends Resource
                 ->label('Content (Markdown)')
                 ->required()
                 ->fileAttachmentsDisk('kb_media')
-                ->fileAttachmentsVisibility('public')
                 ->helperText('Markdown body. Use the image button to embed diagrams — they are stored with the page. A leading "# Title" and a revision-log table are added automatically if absent.')
                 ->hintAction(
                     Actions\Action::make('draftAi')
