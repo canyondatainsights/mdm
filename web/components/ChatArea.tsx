@@ -210,7 +210,7 @@ export function ChatArea({
   if (!conversation) {
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "var(--bg)" }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="sparkle" size={22} stroke={2} /></div>
+        <SidecarFace size={48} />
         <div style={{ fontSize: 15, fontWeight: 600 }}>Start a conversation</div>
         <div style={{ fontSize: 13, color: "var(--fg-3)", maxWidth: 360, textAlign: "center" }}>Lock a technology stack first — answers stay within it and never mix vendors.</div>
         <button onClick={onNew} style={{ padding: "9px 16px", borderRadius: 9, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 13, fontWeight: 600 }}>New conversation</button>
