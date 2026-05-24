@@ -206,23 +206,22 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
         onChange={(e) => { setUrl(e.target.value); setCrawlReq("idle"); }}
         placeholder="https://docs.informatica.com/…"
         className="mono"
-        style={{ ...fieldStyle, marginBottom: url.trim() ? 6 : 14 }}
+        style={{ ...fieldStyle, marginBottom: 6 }}
       />
-      {url.trim() && (
-        <div style={{ marginBottom: 14, padding: "8px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, fontSize: 11.5, color: "var(--fg-2)", lineHeight: 1.5 }}>
-          A URL ingests <strong>only that single page</strong> — it does not crawl the rest of the site.{" "}
-          {crawlReq === "done" ? (
-            <span style={{ color: "var(--ok)", fontWeight: 500 }}>✓ Crawl requested — a steward will review it.</span>
-          ) : (
-            <>Need the whole site?{" "}
-              <button type="button" onClick={requestSiteCrawl} disabled={crawlReq === "sending"} className="hov-link"
-                style={{ background: "none", border: 0, padding: 0, color: "var(--accent-2)", fontWeight: 600, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}>
-                {crawlReq === "sending" ? "Requesting…" : "Request a full-site crawl"}
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      <div style={{ marginBottom: 14, padding: "8px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, fontSize: 11.5, color: "var(--fg-2)", lineHeight: 1.5 }}>
+        A URL ingests <strong>only that single page</strong> — it does not crawl the rest of the site.{" "}
+        {crawlReq === "done" ? (
+          <span style={{ color: "var(--ok)", fontWeight: 500 }}>✓ Crawl requested — a steward will review it.</span>
+        ) : (
+          <>Need the whole site?{" "}
+            <button type="button" onClick={requestSiteCrawl} disabled={crawlReq === "sending" || !url.trim()} className="hov-link"
+              style={{ background: "none", border: 0, padding: 0, color: url.trim() ? "var(--accent-2)" : "var(--fg-4)", fontWeight: 600, fontSize: 11.5, textDecoration: "underline", cursor: url.trim() ? "pointer" : "default" }}>
+              {crawlReq === "sending" ? "Requesting…" : "Request a full-site crawl"}
+            </button>
+            {!url.trim() && <span style={{ color: "var(--fg-4)" }}> (paste the site URL above first)</span>}
+          </>
+        )}
+      </div>
 
       <details style={{ marginBottom: 12 }}>
         <summary style={{ ...labelStyle, marginBottom: 0, cursor: "pointer" }}>
