@@ -21,6 +21,7 @@ class KbReclassify extends Command
     protected $signature = 'kb:reclassify
         {--dry-run : preview the tag changes without writing}
         {--only= : only sources whose path contains this substring}
+        {--limit=0 : cap the number of sources processed (0 = all)}
         {--sleep=3 : seconds to pause between LLM calls (provider rate limits)}
         {--revert : restore tags from the most recent reclassify run}';
 
@@ -38,6 +39,9 @@ class KbReclassify extends Command
         $query = Source::query()->orderBy('path');
         if ($only = $this->option('only')) {
             $query->where('path', 'like', '%'.$only.'%');
+        }
+        if (($limit = (int) $this->option('limit')) > 0) {
+            $query->limit($limit);
         }
         $sources = $query->get();
         if ($sources->isEmpty()) {
