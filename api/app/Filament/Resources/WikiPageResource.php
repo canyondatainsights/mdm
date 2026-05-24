@@ -4,9 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\WikiPageResource\Pages;
 use App\Models\WikiPage;
+use App\Services\Kb\WikiDrafter;
 use Filament\Actions;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -78,6 +82,44 @@ class WikiPageResource extends Resource
                 ->fileAttachmentsDisk('kb_media')
                 ->fileAttachmentsVisibility('public')
                 ->helperText('Markdown body. Use the image button to embed diagrams — they are stored with the page. A leading "# Title" and a revision-log table are added automatically if absent.')
+                ->hintAction(
+                    Actions\Action::make('draftAi')
+                        ->label('Draft with AI')
+                        ->icon('heroicon-m-sparkles')
+                        ->modalHeading('Draft this page with AI')
+                        ->modalDescription('Generates a Markdown draft from the title + tags below. Review and edit before saving — it appends to any existing content.')
+                        ->modalSubmitActionLabel('Generate')
+                        ->form([
+                            Forms\Components\Textarea::make('instructions')
+                                ->label('What should this page cover? (optional)')
+                                ->rows(3)
+                                ->placeholder('e.g. focus on match/merge tuning and survivorship rules'),
+                        ])
+                        ->action(function (array $data, Get $get, Set $set) {
+                            $title = trim((string) $get('title'));
+                            if ($title === '') {
+                                Notification::make()->title('Add a title first')->warning()->send();
+
+                                return;
+                            }
+                            try {
+                                $body = app(WikiDrafter::class)->draft($title, [
+                                    'mdm_vendor' => $get('mdm_vendor'),
+                                    'data_platform' => $get('data_platform'),
+                                    'product' => $get('product'),
+                                    'domain' => $get('domain'),
+                                    'financial_model' => $get('financial_model'),
+                                ], $data['instructions'] ?? null);
+                            } catch (\Throwable $e) {
+                                Notification::make()->title('Generation failed')->body($e->getMessage())->danger()->send();
+
+                                return;
+                            }
+                            $existing = trim((string) $get('content'));
+                            $set('content', $existing ? $existing."\n\n".$body : $body);
+                            Notification::make()->title('Draft inserted — review before saving')->success()->send();
+                        }),
+                )
                 ->columnSpanFull(),
             Forms\Components\Select::make('mdm_vendor')->label('Vendor')->options($opts('mdm_vendor'))->nullable(),
             Forms\Components\TextInput::make('product')->nullable(),
