@@ -7,6 +7,7 @@ use App\Models\TaxonomyTerm;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -56,8 +57,8 @@ class TaxonomyTermResource extends Resource
             Forms\Components\Select::make('vendor')
                 ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
                 ->searchable()
-                ->visible(fn (Forms\Get $get) => $get('type') === 'product')
-                ->required(fn (Forms\Get $get) => $get('type') === 'product')
+                ->visible(fn (Get $get) => $get('type') === 'product')
+                ->required(fn (Get $get) => $get('type') === 'product')
                 ->helperText('Which vendor this product belongs to.'),
             Forms\Components\TextInput::make('sort_order')
                 ->numeric()

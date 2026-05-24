@@ -7,11 +7,19 @@ use App\Models\Message;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    /** Tab/header colors (ARGB), cycled per sheet — mirrors the web design tokens. */
+    private const PALETTE = ['FFE2603F', 'FF8B5CF6', 'FF14B8A6', 'FFF59E0B', 'FFE11D48', 'FF22C55E'];
+
+    /** Header names (lowercased) that mark the per-entity grouping column, in priority order. */
+    private const ENTITY_COLUMNS = ['target business entity', 'business entity', 'target entity', 'target field group'];
+
     /** Export the Markdown table(s) in an assistant message as a downloadable .xlsx. */
     public function xlsx(Request $request): StreamedResponse
     {
@@ -30,27 +38,13 @@ class ExportController extends Controller
         abort_if(empty($tables), 422, 'This message has no table to export.');
 
         $spreadsheet = new Spreadsheet;
-        foreach ($tables as $i => $table) {
+        $used = [];
+        foreach ($this->buildSheetPlan($tables) as $i => $plan) {
             $sheet = $i === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
-            $sheet->setTitle($i === 0 ? 'Mapping' : 'Table '.($i + 1));
-
-            foreach ($table['header'] as $c => $value) {
-                $sheet->setCellValue(Coordinate::stringFromColumnIndex($c + 1).'1', $value);
-            }
-            foreach ($table['rows'] as $r => $row) {
-                foreach ($row as $c => $value) {
-                    $sheet->setCellValue(Coordinate::stringFromColumnIndex($c + 1).($r + 2), $value);
-                }
-            }
-
-            $cols = max(1, count($table['header']));
-            $last = Coordinate::stringFromColumnIndex($cols);
-            $sheet->getStyle("A1:{$last}1")->getFont()->setBold(true);
-            $sheet->freezePane('A2');
-            for ($c = 1; $c <= $cols; $c++) {
-                $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($c))->setAutoSize(true);
-            }
+            $sheet->setTitle($this->safeTitle($plan['title'], $used));
+            $this->writeSheet($sheet, $plan['header'], $plan['rows'], self::PALETTE[$i % count(self::PALETTE)]);
         }
+        $spreadsheet->setActiveSheetIndex(0);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'mapping-'.$message->id.'.xlsx';
@@ -60,6 +54,99 @@ class ExportController extends Controller
             $filename,
             ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
         );
+    }
+
+    /**
+     * Decide the workbook's sheets. A single S2T mapping table with a "Target Business Entity"
+     * column (and ≥2 distinct entities) becomes an "All Mappings" overview tab plus one tab per
+     * entity; otherwise each parsed table is its own sheet.
+     *
+     * @param  array<int, array{header: string[], rows: array<int, string[]>}>  $tables
+     * @return array<int, array{title: string, header: string[], rows: array<int, string[]>}>
+     */
+    private function buildSheetPlan(array $tables): array
+    {
+        if (count($tables) === 1) {
+            $t = $tables[0];
+            $col = $this->entityColumnIndex($t['header']);
+            if ($col !== null) {
+                $groups = [];
+                foreach ($t['rows'] as $row) {
+                    $key = trim((string) ($row[$col] ?? '')) ?: 'Unspecified';
+                    $groups[$key][] = $row;
+                }
+                if (count($groups) >= 2) {
+                    $plan = [['title' => 'All Mappings', 'header' => $t['header'], 'rows' => $t['rows']]];
+                    foreach ($groups as $entity => $rows) {
+                        $plan[] = ['title' => $entity, 'header' => $t['header'], 'rows' => $rows];
+                    }
+
+                    return $plan;
+                }
+            }
+        }
+
+        $plan = [];
+        foreach ($tables as $i => $t) {
+            $plan[] = ['title' => $i === 0 ? 'Mapping' : 'Table '.($i + 1), 'header' => $t['header'], 'rows' => $t['rows']];
+        }
+
+        return $plan;
+    }
+
+    /** Index of the business-entity column in a header row, or null if none matches. */
+    private function entityColumnIndex(array $header): ?int
+    {
+        foreach (self::ENTITY_COLUMNS as $name) {
+            foreach ($header as $i => $h) {
+                if (strtolower(trim((string) $h)) === $name) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Write a header + rows to a sheet with bold colored header, frozen pane, autosize, tab color. */
+    private function writeSheet(Worksheet $sheet, array $header, array $rows, string $argb): void
+    {
+        foreach ($header as $c => $value) {
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($c + 1).'1', $value);
+        }
+        foreach ($rows as $r => $row) {
+            foreach ($row as $c => $value) {
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($c + 1).($r + 2), $value);
+            }
+        }
+
+        $cols = max(1, count($header));
+        $last = Coordinate::stringFromColumnIndex($cols);
+        $headStyle = $sheet->getStyle("A1:{$last}1");
+        $headStyle->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $headStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($argb);
+        $sheet->freezePane('A2');
+        for ($c = 1; $c <= $cols; $c++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($c))->setAutoSize(true);
+        }
+        $sheet->getTabColor()->setARGB($argb);
+    }
+
+    /** Sheet-title-safe name: strip invalid chars, cap at 31, de-duplicate (case-insensitive). */
+    private function safeTitle(string $name, array &$used): string
+    {
+        $clean = trim(preg_replace('/[*:\/\\\\?\[\]]/', '', $name) ?? '');
+        $clean = $clean === '' ? 'Sheet' : mb_substr($clean, 0, 31);
+        $base = $clean;
+        $k = 2;
+        while (in_array(mb_strtolower($clean), $used, true)) {
+            $suffix = ' '.$k;
+            $clean = mb_substr($base, 0, 31 - mb_strlen($suffix)).$suffix;
+            $k++;
+        }
+        $used[] = mb_strtolower($clean);
+
+        return $clean;
     }
 
     /** Flatten a stored message's content to plain markdown text. */

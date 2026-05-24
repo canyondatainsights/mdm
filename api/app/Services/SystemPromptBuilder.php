@@ -53,7 +53,9 @@ class SystemPromptBuilder
         chunk), still include it and note that in the Notes column (e.g. "general C360 model"). Do
         **not** omit rows or hedge for lack of retrieved field detail. The source side may use your
         product knowledge of typical CRM/source schemas. After the table, tell the user they can
-        download it with the **Download Excel** button on the message.
+        download it with the **Download Excel** button on the message — the export puts each
+        distinct **Target Business Entity** on its own color-coded tab (plus an "All Mappings"
+        overview), so they do not need separate tables per entity in the chat.
 
         ## Locked technology stack (HARD CONSTRAINT)
         This conversation is locked to a single stack. You must answer **only** within it and
