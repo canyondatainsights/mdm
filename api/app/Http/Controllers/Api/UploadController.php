@@ -32,9 +32,10 @@ class UploadController extends Controller
             'Steward or Admin role required to expand the knowledge base.'
         );
 
+        $ext = 'extensions:'.implode(',', config('mdm.uploads.extensions', []));
         $request->validate([
             'files' => ['nullable', 'array'],
-            'files.*' => ['file', 'max:131072', 'mimes:pdf,md,markdown,txt'],
+            'files.*' => ['file', 'max:131072', $ext],
             'url' => ['nullable', 'url', 'max:2048'],
         ]);
 
@@ -89,10 +90,11 @@ class UploadController extends Controller
         );
 
         $dims = Taxonomy::dimensions();
+        $ext = 'extensions:'.implode(',', config('mdm.uploads.extensions', []));
         $data = $request->validate([
             'files' => ['required_without_all:file,url', 'array'],
-            'files.*' => ['file', 'max:131072', 'mimes:pdf,md,markdown,txt'],
-            'file' => ['required_without_all:files,url', 'file', 'max:131072', 'mimes:pdf,md,markdown,txt'],
+            'files.*' => ['file', 'max:131072', $ext],
+            'file' => ['required_without_all:files,url', 'file', 'max:131072', $ext],
             'url' => ['required_without_all:files,file', 'url', 'max:2048'],
             'category' => ['nullable', 'string', 'max:64'],
             'mdm_vendor' => ['nullable', Rule::in($dims['mdm_vendor'])],

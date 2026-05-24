@@ -84,6 +84,17 @@ return [
         'stibo' => ['STEP'],
     ],
 
+    // Allowed upload file types. 'pdf' is parsed via poppler/OCR; everything else here is read
+    // as UTF-8 text (docs + example scripts/code, so .sql/.py/etc. ingest, retrieve, and cite
+    // like any document). Extend to accept more script/code types.
+    'uploads' => [
+        'extensions' => [
+            'pdf', 'md', 'markdown', 'txt',
+            'sql', 'py', 'json', 'yaml', 'yml', 'xml', 'js', 'ts', 'tsx', 'jsx',
+            'sh', 'bash', 'scala', 'java', 'rb', 'go', 'csv', 'tsv', 'ini', 'conf', 'properties', 'toml', 'r',
+        ],
+    ],
+
     // Phrases that signal the user wants to enrich the KB (creates a stewardship task).
     'enrichment_triggers' => [
         'capture this to the wiki',

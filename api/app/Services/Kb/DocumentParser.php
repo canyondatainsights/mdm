@@ -20,7 +20,10 @@ class DocumentParser
             'md', 'markdown' => $this->parseMarkdown($absPath),
             'txt' => $this->parseText($absPath, 'TXT'),
             'pdf' => $this->parsePdf($absPath),
-            default => null, // DOCX/XLSX/PPTX handled in a later phase
+            // Example scripts / code (.sql, .py, .json, …) ingest as UTF-8 text, tagged by language.
+            default => in_array($ext, config('mdm.uploads.extensions', []), true)
+                ? $this->parseText($absPath, $this->codeType($ext))
+                : null, // DOCX/XLSX/PPTX handled in a later phase
         };
     }
 
@@ -94,11 +97,9 @@ class DocumentParser
     public function excerpt(string $absPath, int $maxChars = 6000): string
     {
         $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
-        $text = match ($ext) {
-            'pdf' => $this->pdftotextHead($absPath),
-            'md', 'markdown', 'txt' => (string) file_get_contents($absPath),
-            default => '',
-        };
+        $text = $ext === 'pdf'
+            ? $this->pdftotextHead($absPath)
+            : (in_array($ext, config('mdm.uploads.extensions', []), true) ? (string) file_get_contents($absPath) : '');
 
         return mb_substr(trim((string) $text), 0, $maxChars);
     }
@@ -222,5 +223,15 @@ class DocumentParser
     private function basenameTitle(string $absPath): string
     {
         return str(pathinfo($absPath, PATHINFO_FILENAME))->replace(['-', '_'], ' ')->title()->toString();
+    }
+
+    /** Display doc-type label for a code/script extension (e.g. yml → YAML, py → PY). */
+    private function codeType(string $ext): string
+    {
+        return match ($ext) {
+            'yml', 'yaml' => 'YAML',
+            'markdown' => 'MD',
+            default => strtoupper($ext),
+        };
     }
 }

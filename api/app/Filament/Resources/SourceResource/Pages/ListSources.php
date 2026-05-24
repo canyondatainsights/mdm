@@ -33,7 +33,7 @@ class ListSources extends ListRecords
                 ->label('Upload documentation')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->modalHeading('Expand the knowledge base')
-                ->modalDescription('Add PDF/MD/TXT docs and/or a reference URL. They are scanned and auto-tagged by vendor + product + subject — review each below before ingesting.')
+                ->modalDescription('Add PDF/MD/TXT docs, example scripts (.sql, .py, .json, …), and/or a reference URL. They are scanned and auto-tagged by vendor + product + subject — review each below before ingesting.')
                 ->modalSubmitActionLabel('Confirm & ingest')
                 ->form([
                     Forms\Components\FileUpload::make('files')
@@ -42,7 +42,11 @@ class ListSources extends ListRecords
                         ->preserveFilenames()
                         ->disk('local')
                         ->directory('kb-uploads-tmp')
-                        ->acceptedFileTypes(['application/pdf', 'text/plain', 'text/markdown'])
+                        ->acceptedFileTypes([
+                            'application/pdf', 'text/plain', 'text/markdown', 'text/csv',
+                            'application/json', 'application/xml', 'text/xml', 'application/x-yaml',
+                            'application/octet-stream',
+                        ])
                         ->maxSize(51200)
                         ->live()
                         ->afterStateUpdated(fn ($state, Get $get, Set $set) => $this->onFilesChanged($state, $get, $set))

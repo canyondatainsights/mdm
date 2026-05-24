@@ -66,6 +66,14 @@ const DOC_COLORS: Record<string, [string, string]> = {
   Confluence: ["oklch(0.96 0.04 42)", "oklch(0.52 0.15 33)"],
   MD: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
   TXT: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
+  SQL: ["oklch(0.95 0.04 230)", "oklch(0.48 0.13 250)"],
+  PY: ["oklch(0.95 0.05 90)", "oklch(0.48 0.12 95)"],
+  JSON: ["oklch(0.95 0.04 155)", "oklch(0.42 0.13 155)"],
+  XML: ["oklch(0.95 0.04 320)", "oklch(0.50 0.15 330)"],
+  YAML: ["oklch(0.95 0.04 195)", "oklch(0.48 0.12 200)"],
+  JS: ["oklch(0.96 0.06 95)", "oklch(0.50 0.13 90)"],
+  TS: ["oklch(0.95 0.04 250)", "oklch(0.48 0.13 255)"],
+  SH: ["oklch(0.94 0.02 150)", "oklch(0.42 0.06 150)"],
 };
 
 export function DocTypeBadge({ type }: { type: string }) {

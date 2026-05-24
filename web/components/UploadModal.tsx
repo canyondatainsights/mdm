@@ -170,8 +170,9 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
   return (
     <Modal title="Expand the knowledge base" onClose={onClose} width={560}>
       <p style={{ fontSize: 12, color: "var(--fg-3)", marginBottom: 14, lineHeight: 1.5 }}>
-        Upload PDF / Markdown / TXT documents, or paste a reference URL. Use <strong>Scan &amp; classify</strong> to
-        auto-tag each file by vendor, product and subject before ingesting — adjust anything before you confirm.
+        Upload documents (PDF / Markdown / TXT), example scripts (.sql, .py, .json, …), or paste a reference URL.
+        Use <strong>Scan &amp; classify</strong> to auto-tag each source by vendor, product and subject before
+        ingesting — adjust anything before you confirm.
       </p>
 
       <label style={labelStyle}>Documents</label>
@@ -179,7 +180,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
         ref={fileRef}
         type="file"
         multiple
-        accept=".pdf,.md,.markdown,.txt,application/pdf,text/plain,text/markdown"
+        accept=".pdf,.md,.markdown,.txt,.sql,.py,.json,.yaml,.yml,.xml,.js,.ts,.tsx,.jsx,.sh,.bash,.scala,.java,.rb,.go,.csv,.tsv,.ini,.conf,.properties,.toml,.r"
         onChange={() => setReviews(null)}
         style={{ ...fieldStyle, padding: "7px 10px", marginBottom: 12 }}
       />
