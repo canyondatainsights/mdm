@@ -12,6 +12,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
 import { UploadModal } from "@/components/UploadModal";
 import { WikiBrowser } from "@/components/WikiBrowser";
+import { useIdleLogout } from "@/lib/useIdleLogout";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -86,6 +87,9 @@ export default function Home() {
     setActive(null);
     setMessages([]);
   };
+
+  // Auto-logout after 30 minutes of inactivity (only while signed in).
+  useIdleLogout(logout, 30, !!user);
 
   if (!booted) return <div style={{ height: "100%" }} />;
   if (!user) return <Login onAuthed={setUser} />;

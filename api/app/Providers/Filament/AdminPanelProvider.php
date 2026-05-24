@@ -10,6 +10,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -48,6 +49,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
             ])
+            // Auto-logout after 15 minutes of no user activity (client-side idle timer).
+            ->renderHook(PanelsRenderHook::BODY_END, fn (): string => view('filament.idle-logout')->render())
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
