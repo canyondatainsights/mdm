@@ -72,30 +72,23 @@ class Metadata
             }
         }
 
-        // Auto-parse from filename + document content for anything still missing.
-        $hay = strtolower(basename($relPath).' '.substr((string) $body, 0, 4000));
+        // Auto-parse CONSERVATIVELY — from the filename + title region only, never deep body
+        // content. A doc that merely *mentions* Databricks/Snowflake or "customer" is not a
+        // Databricks/customer doc; guessing from incidental mentions mis-tags and then the
+        // isolation filters hide the doc. When unsure, leave null / 'general' (the filename
+        // already set the domain) and let an explicit upload tag or Phase-B classification decide.
+        $titleish = strtolower(basename($relPath).' '.substr((string) $body, 0, 400));
         if (empty($meta['mdm_vendor'])) {
-            $meta['mdm_vendor'] = self::detectFromList($hay, config('mdm.dimensions.mdm_vendor', []));
+            $meta['mdm_vendor'] = self::detectFromList($titleish, \App\Services\Taxonomy\Taxonomy::values('mdm_vendor'));
         }
-        if (empty($meta['data_platform'])) {
-            $meta['data_platform'] = self::detectFromList($hay, config('mdm.dimensions.data_platform', []));
-        }
+        // data_platform is NOT inferred from content — only an explicit tag/front-matter/section.
         if (empty($meta['product'])) {
-            $candidates = config('mdm.products.'.($meta['mdm_vendor'] ?? '_'))
-                ?? array_merge([], ...array_values(config('mdm.products', [])));
-            $meta['product'] = self::detectProduct($hay, $candidates);
+            $candidates = \App\Services\Taxonomy\Taxonomy::productsFor($meta['mdm_vendor'] ?? '_')
+                ?: \App\Services\Taxonomy\Taxonomy::allProducts();
+            $meta['product'] = self::detectProduct($titleish, $candidates);
         }
         if (empty($meta['product_version'])) {
-            $meta['product_version'] = self::detectVersion(basename($relPath).' '.substr((string) $body, 0, 2000));
-        }
-        // If the domain only fell back to 'general', try to infer it from the content.
-        if (($meta['domain'] ?? 'general') === 'general' && ! self::first($frontMatter, ['domain']) && empty($overrides['domain'])) {
-            foreach (self::DOMAIN_KEYWORDS as $kw => $d) {
-                if (str_contains($hay, $kw)) {
-                    $meta['domain'] = $d;
-                    break;
-                }
-            }
+            $meta['product_version'] = self::detectVersion(strtolower(basename($relPath)));
         }
 
         // Normalize empty strings / "null" to null.

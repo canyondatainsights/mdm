@@ -20,7 +20,7 @@ class ConversationController extends Controller
 
     public function store(Request $request)
     {
-        $dims = config('mdm.dimensions');
+        $dims = \App\Services\Taxonomy\Taxonomy::dimensions();
 
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],

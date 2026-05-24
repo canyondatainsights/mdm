@@ -73,12 +73,19 @@ class Retriever
         $q->where(fn ($w) => $w->whereNull('chunks.data_platform')->orWhere('chunks.data_platform', $stack['data_platform']));
         $q->where(fn ($w) => $w->whereNull('chunks.financial_model')->orWhere('chunks.financial_model', $stack['financial_model']));
 
-        // Domain scoping. When the stack pins domains, restrict to exactly those — no
-        // generic 'general' filler (a locked stack does not want vendor-agnostic padding).
-        // When no domains are pinned, don't constrain by domain (vendor isolation still applies).
+        // Domain scoping. When the stack pins domains, restrict to those — but still include the
+        // locked vendor's OWN 'general' docs (e.g. Informatica capability docs like CDGC/DQ that
+        // aren't a data-domain). Only cross-vendor/neutral 'general' content (mdm_vendor NULL) is
+        // excluded as filler. When no domains are pinned, don't constrain by domain.
         $domains = $stack['domains'] ?: [];
         if (! empty($domains)) {
-            $q->whereIn('chunks.domain', $domains);
+            $vendor = $stack['mdm_vendor'] ?? null;
+            $q->where(function ($w) use ($domains, $vendor) {
+                $w->whereIn('chunks.domain', $domains);
+                if ($vendor) {
+                    $w->orWhere(fn ($w2) => $w2->where('chunks.domain', 'general')->where('chunks.mdm_vendor', $vendor));
+                }
+            });
         }
 
         // Optional product / version scoping (when the conversation pins them).

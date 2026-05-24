@@ -40,16 +40,16 @@ class WikiPageResource extends Resource
             Forms\Components\TextInput::make('section')
                 ->disabled(),
             Forms\Components\Select::make('mdm_vendor')
-                ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                 ->nullable(),
             Forms\Components\Select::make('data_platform')
-                ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                 ->nullable(),
             Forms\Components\Select::make('financial_model')
-                ->options(fn () => collect(config('mdm.dimensions.financial_model'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('financial_model'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                 ->nullable(),
             Forms\Components\Select::make('domain')
-                ->options(fn () => collect(config('mdm.dimensions.domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                 ->nullable(),
             Forms\Components\Select::make('scope')
                 ->options(['neutral' => 'Neutral', 'vendor-specific' => 'Vendor-specific'])
@@ -91,9 +91,9 @@ class WikiPageResource extends Resource
                 Tables\Filters\SelectFilter::make('section')
                     ->options(fn () => WikiPage::distinct()->whereNotNull('section')->pluck('section', 'section')->toArray()),
                 Tables\Filters\SelectFilter::make('mdm_vendor')
-                    ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                    ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
                 Tables\Filters\SelectFilter::make('data_platform')
-                    ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                    ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
                 Tables\Filters\SelectFilter::make('scope')
                     ->options(['neutral' => 'Neutral', 'vendor-specific' => 'Vendor-specific']),
             ])
@@ -106,7 +106,7 @@ class WikiPageResource extends Resource
                     ->icon('heroicon-o-tag')
                     ->form([
                         Forms\Components\Select::make('mdm_vendor')
-                            ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                             ->nullable(),
                     ])
                     ->action(fn ($records, array $data) => $records->each->update(['mdm_vendor' => $data['mdm_vendor']])),
@@ -115,7 +115,7 @@ class WikiPageResource extends Resource
                     ->icon('heroicon-o-tag')
                     ->form([
                         Forms\Components\Select::make('data_platform')
-                            ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                             ->nullable(),
                     ])
                     ->action(fn ($records, array $data) => $records->each->update(['data_platform' => $data['data_platform']])),
@@ -124,7 +124,7 @@ class WikiPageResource extends Resource
                     ->icon('heroicon-o-tag')
                     ->form([
                         Forms\Components\Select::make('domain')
-                            ->options(fn () => collect(config('mdm.dimensions.domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray())
                             ->nullable(),
                     ])
                     ->action(fn ($records, array $data) => $records->each->update(['domain' => $data['domain']])),

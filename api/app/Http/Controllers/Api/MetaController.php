@@ -13,7 +13,7 @@ class MetaController extends Controller
     /** Lockable stack dimensions (+ per-vendor products) for the Stack-Lock / upload UI. */
     public function dimensions()
     {
-        return config('mdm.dimensions') + ['products' => config('mdm.products')];
+        return \App\Services\Taxonomy\Taxonomy::dimensions() + ['products' => \App\Services\Taxonomy\Taxonomy::products()];
     }
 
     /** KB coverage stats for the sidebar / data-model explorer. */

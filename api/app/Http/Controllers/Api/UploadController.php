@@ -27,7 +27,7 @@ class UploadController extends Controller
             'Steward or Admin role required to expand the knowledge base.'
         );
 
-        $dims = config('mdm.dimensions');
+        $dims = \App\Services\Taxonomy\Taxonomy::dimensions();
 
         $data = $request->validate([
             'files' => ['required_without_all:file,url', 'array'],

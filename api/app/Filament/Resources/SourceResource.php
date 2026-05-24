@@ -101,9 +101,9 @@ class SourceResource extends Resource
                 Tables\Filters\SelectFilter::make('doc_type')
                     ->options(fn () => Source::distinct()->whereNotNull('doc_type')->pluck('doc_type', 'doc_type')->toArray()),
                 Tables\Filters\SelectFilter::make('mdm_vendor')
-                    ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                    ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
                 Tables\Filters\SelectFilter::make('data_platform')
-                    ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                    ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
             ])
             ->recordActions([
                 Actions\ViewAction::make(),
@@ -123,15 +123,15 @@ class SourceResource extends Resource
                     ])
                     ->form([
                         Forms\Components\Select::make('mdm_vendor')->label('Vendor')
-                            ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
                             ->live(),
                         Forms\Components\Select::make('data_platform')->label('Data platform')
-                            ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
                         Forms\Components\TextInput::make('product')->maxLength(128)
-                            ->datalist(fn (Get $get) => config('mdm.products')[$get('mdm_vendor')] ?? []),
+                            ->datalist(fn (Get $get) => \App\Services\Taxonomy\Taxonomy::productsFor($get('mdm_vendor'))),
                         Forms\Components\TextInput::make('product_version')->label('Version')->maxLength(64),
                         Forms\Components\Select::make('domain')
-                            ->options(fn () => collect(config('mdm.dimensions.domain'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                            ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
                         Forms\Components\Select::make('scope')->options(['vendor-specific' => 'Vendor-specific', 'neutral' => 'Neutral']),
                     ])
                     ->action(function (Source $record, array $data) {

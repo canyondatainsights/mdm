@@ -61,15 +61,21 @@ return [
         'mdm_vendor' => ['informatica', 'sap', 'profisee', 'reltio', 'ataccama', 'stibo'],
         'data_platform' => ['databricks', 'snowflake', 'bigquery', 'synapse'],
         'financial_model' => ['isda-cdm', 'fpml', 'fibo'],
-        'domain' => ['customer', 'product', 'vendor', 'supplier', 'finance', 'healthcare', 'general'],
+        'domain' => [
+            'customer', 'product', 'vendor', 'supplier', 'finance', 'healthcare',
+            // IDMC capability "subjects" (not data-domains, but lockable topics).
+            'data-governance', 'data-quality', 'data-profiling', 'parsing', 'address-verification',
+            'general',
+        ],
     ],
 
     // Known products per vendor — drives the upload form's product picker (free-text
     // fallback allowed). Versions are free-text (e.g. '10.5', 'SaaS 2024.x'), not enumerated.
     'products' => [
         'informatica' => [
-            'MDM Hub', 'Customer 360', 'Supplier 360', 'Product 360', 'Reference 360',
-            'IDQ', 'IDMC', 'Data Director', 'Provisioning Tool',
+            'MDM Hub', 'Multidomain MDM', 'Customer 360', 'Supplier 360', 'Product 360', 'Reference 360',
+            'CDGC', 'Cloud Data Governance and Catalog', 'Cloud Data Quality', 'Cloud Data Profiling',
+            'Address Verification', 'Data as a Service', 'IDQ', 'IDMC', 'Data Director', 'Provisioning Tool',
         ],
         'sap' => ['Master Data Governance', 'S/4HANA MDG'],
         'profisee' => ['Profisee Platform'],

@@ -46,22 +46,22 @@ class ListSources extends ListRecords
                         ->columnSpanFull(),
                     Forms\Components\Select::make('mdm_vendor')
                         ->label('Vendor')
-                        ->options(fn () => collect(config('mdm.dimensions.mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
+                        ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->all())
                         ->live(),
                     Forms\Components\Select::make('data_platform')
                         ->label('Data platform')
-                        ->options(fn () => collect(config('mdm.dimensions.data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                        ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
                     Forms\Components\TextInput::make('product')
                         ->label('Product')
                         ->maxLength(128)
-                        ->datalist(fn (Get $get) => config('mdm.products')[$get('mdm_vendor')] ?? [])
+                        ->datalist(fn (Get $get) => \App\Services\Taxonomy\Taxonomy::productsFor($get('mdm_vendor')))
                         ->helperText('Free text. Suggestions appear for the selected vendor (e.g. Customer 360).'),
                     Forms\Components\TextInput::make('product_version')
                         ->label('Version')
                         ->maxLength(64)
                         ->placeholder('e.g. 10.5 or SaaS 2024.x'),
                     Forms\Components\Select::make('domain')
-                        ->options(fn () => collect(config('mdm.dimensions.domain'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
+                        ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->all()),
                     Forms\Components\Select::make('scope')
                         ->options(['vendor-specific' => 'Vendor-specific', 'neutral' => 'Neutral'])
                         ->default('vendor-specific'),
