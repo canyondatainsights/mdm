@@ -16,6 +16,21 @@ export interface Dimensions {
   products?: Record<string, string[]>;
 }
 
+export interface ClassifySuggestion {
+  mdm_vendor: string | null;
+  data_platform: string | null;
+  product: string | null;
+  domain: string | null;
+  proposed_subject: { value: string; label: string } | null;
+  confidence: "high" | "medium" | "low";
+  reasoning: string | null;
+  error?: string;
+}
+
+export interface ClassifyResult {
+  files: { filename: string; suggestion: ClassifySuggestion }[];
+}
+
 export interface Conversation {
   id: number;
   title: string;

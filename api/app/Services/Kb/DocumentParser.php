@@ -87,6 +87,39 @@ class DocumentParser
         ];
     }
 
+    /**
+     * Fast, low-cost text excerpt (filename-independent, first pages only, NO OCR) for
+     * pre-ingest classification. Keeps the classify endpoint responsive on large/scanned PDFs.
+     */
+    public function excerpt(string $absPath, int $maxChars = 6000): string
+    {
+        $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
+        $text = match ($ext) {
+            'pdf' => $this->pdftotextHead($absPath),
+            'md', 'markdown', 'txt' => (string) file_get_contents($absPath),
+            default => '',
+        };
+
+        return mb_substr(trim((string) $text), 0, $maxChars);
+    }
+
+    /** First few pages of embedded PDF text — cheap signal for classification. */
+    private function pdftotextHead(string $absPath, int $pages = 3): ?string
+    {
+        try {
+            $r = Process::timeout(60)->run([
+                config('mdm.ocr.pdftotext', 'pdftotext'), '-q', '-f', '1', '-l', (string) $pages, '-enc', 'UTF-8', $absPath, '-',
+            ]);
+            if ($r->successful()) {
+                return trim($r->output());
+            }
+        } catch (\Throwable $e) {
+            // fall through
+        }
+
+        return null;
+    }
+
     /** Extract embedded text with poppler's pdftotext (UTF-8, to stdout). Null if unavailable. */
     private function pdftotext(string $absPath): ?string
     {

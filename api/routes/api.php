@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/sources', [SourceController::class, 'index']);
     Route::get('/sources/{path}', [SourceController::class, 'show'])->where('path', '.*');
+    Route::post('/uploads/classify', [UploadController::class, 'classify']);
     Route::post('/uploads', [UploadController::class, 'store']);
     Route::post('/uploads/status', [UploadController::class, 'status']);
     Route::post('/exports/xlsx', [ExportController::class, 'xlsx']);

@@ -62,6 +62,8 @@ export const api = {
   // sources
   sources: () => req<{ count: number; sources: SourceListItem[] }>("/sources"),
   source: (path: string) => req<SourceDetail>(`/sources/${path}`),
+  classifyUploads: (form: FormData) =>
+    req<import("./types").ClassifyResult>("/uploads/classify", { method: "POST", body: form }),
   upload: (form: FormData) =>
     req<{ ok: boolean; queued: number; files: { path?: string; url?: string; status: string }[] }>(
       "/uploads",
