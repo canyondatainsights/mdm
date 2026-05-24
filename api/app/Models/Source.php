@@ -44,7 +44,7 @@ class Source extends Model
             // New uploads land pending — a steward approves them before they're used in answers.
             $s->approved = false;
         }
-        foreach (['mdm_vendor', 'data_platform', 'domain', 'scope', 'product', 'product_version', 'extension'] as $k) {
+        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'domain', 'scope', 'product', 'product_version', 'extension'] as $k) {
             if (! empty($overrides[$k])) {
                 $s->{$k} = $overrides[$k];
             }

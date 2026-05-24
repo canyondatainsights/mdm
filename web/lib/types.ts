@@ -23,6 +23,7 @@ export interface ClassifySuggestion {
   product: string | null;
   domain: string | null;
   extension: string | null;
+  financial_model: string | null;
   proposed_subject: { value: string; label: string } | null;
   confidence: "high" | "medium" | "low";
   reasoning: string | null;
@@ -41,6 +42,7 @@ export interface Conversation {
   data_platform: string | null;
   financial_model: string | null;
   domains: string[];
+  extensions?: string[] | null;
   pii_redacted: boolean;
   updated_at: string;
 }

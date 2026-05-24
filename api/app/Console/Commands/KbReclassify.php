@@ -27,7 +27,7 @@ class KbReclassify extends Command
     protected $description = 'Re-classify KB sources + chunks (product/domain/extension) via the LLM classifier.';
 
     /** Fields the reclassifier owns. */
-    private const FIELDS = ['mdm_vendor', 'product', 'domain', 'extension'];
+    private const FIELDS = ['mdm_vendor', 'product', 'domain', 'extension', 'financial_model'];
 
     public function handle(Classifier $classifier, DocumentParser $parser): int
     {
@@ -84,7 +84,13 @@ class KbReclassify extends Command
                 'product' => $r['product'] ?? $s->product,
                 'domain' => $r['domain'] ?? $s->domain,
                 'extension' => $r['extension'],
+                'financial_model' => $r['financial_model'] ?? $s->financial_model,
             ];
+            // A product is vendor-scoped — if the doc has no vendor, a stale product tag is invalid
+            // (e.g. a CDM standard wrongly left as "STEP"). Clear it.
+            if (empty($new['mdm_vendor'])) {
+                $new['product'] = null;
+            }
 
             $diff = [];
             foreach (self::FIELDS as $k) {
@@ -102,7 +108,7 @@ class KbReclassify extends Command
                 continue;
             }
 
-            $snapshot[$s->path] = ['mdm_vendor' => $s->mdm_vendor, 'product' => $s->product, 'domain' => $s->domain, 'extension' => $s->extension];
+            $snapshot[$s->path] = ['mdm_vendor' => $s->mdm_vendor, 'product' => $s->product, 'domain' => $s->domain, 'extension' => $s->extension, 'financial_model' => $s->financial_model];
             Source::where('path', $s->path)->update($new);
             Chunk::where('source_path', $s->path)->update($new);
         }

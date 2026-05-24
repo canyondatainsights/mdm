@@ -24,6 +24,7 @@ type ReviewRow = {
   product_version: string;
   domain: string;
   extension: string;
+  financial_model: string;
   scope: string;
   confidence: Conf;
   reasoning: string | null;
@@ -98,6 +99,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
           product_version: "",
           domain: s.domain ?? "",
           extension: s.extension ?? "",
+          financial_model: s.financial_model ?? "",
           scope: s.mdm_vendor || s.data_platform ? "vendor-specific" : "neutral",
           confidence: s.confidence,
           reasoning: s.error ? `Classify failed: ${s.error}` : s.reasoning,
@@ -143,6 +145,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
             product_version: r.product_version || null,
             domain: r.applyNew && r.proposed ? r.proposed.value : (r.domain || null),
             extension: r.extension || null,
+            financial_model: r.financial_model || null,
             scope: r.scope || null,
           };
           if (r.applyNew && r.proposed) tags.new_subject = r.proposed;
@@ -277,6 +280,10 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
                     <select value={r.extension} onChange={(e) => updateRow(i, { extension: e.target.value })} style={miniField}>
                       <option value="">Extension — core (none)</option>
                       {(dims?.extension ?? []).map((v) => <option key={v} value={v}>{cap(v)}</option>)}
+                    </select>
+                    <select value={r.financial_model} onChange={(e) => updateRow(i, { financial_model: e.target.value })} style={miniField}>
+                      <option value="">Financial model — none</option>
+                      {(dims?.financial_model ?? []).map((v) => <option key={v} value={v}>{cap(v)}</option>)}
                     </select>
                   </div>
                   {r.proposed && (

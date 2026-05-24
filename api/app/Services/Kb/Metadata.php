@@ -40,6 +40,14 @@ class Metadata
         'health' => 'healthcare', 'hipaa' => 'healthcare',
     ];
 
+    /** keyword in filename => financial_model (most specific first) */
+    private const FINANCIAL_MODEL_KEYWORDS = [
+        'common domain model' => 'isda-cdm', 'isda-cdm' => 'isda-cdm', 'isda cdm' => 'isda-cdm', 'isdacdm' => 'isda-cdm',
+        'cdm' => 'isda-cdm',
+        'fpml' => 'fpml',
+        'fibo' => 'fibo',
+    ];
+
     /**
      * @param  array<string,mixed>  $frontMatter
      * @param  array<string,mixed>  $overrides  Explicit values (e.g. from the upload form) that win over derivation.
@@ -91,6 +99,11 @@ class Metadata
         if (empty($meta['product_version'])) {
             $meta['product_version'] = self::detectVersion(strtolower(basename($relPath)));
         }
+        // Financial data standards (ISDA CDM / FpML / FIBO) are a distinct isolation dimension —
+        // infer it from the filename so these vendor-neutral docs are isolated to a matching stack.
+        if (empty($meta['financial_model'])) {
+            $meta['financial_model'] = self::financialModelFromName(strtolower(basename($relPath)));
+        }
 
         // Normalize empty strings / "null" to null.
         foreach (['mdm_vendor', 'data_platform', 'financial_model', 'product', 'product_version', 'extension'] as $k) {
@@ -129,6 +142,18 @@ class Metadata
         }
 
         return 'general';
+    }
+
+    /** Detect a financial data model from the filename (ISDA CDM / FpML / FIBO), else null. */
+    private static function financialModelFromName(string $name): ?string
+    {
+        foreach (self::FINANCIAL_MODEL_KEYWORDS as $kw => $fm) {
+            if (str_contains($name, $kw)) {
+                return $fm;
+            }
+        }
+
+        return null;
     }
 
     /** First value from $list (lowercase tokens, e.g. vendors) that appears in the haystack. */

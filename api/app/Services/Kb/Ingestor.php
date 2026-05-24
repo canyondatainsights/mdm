@@ -94,8 +94,9 @@ class Ingestor
                 'product' => $meta['product'],
                 'product_version' => $meta['product_version'],
                 'extension' => $meta['extension'] ?? null,
-                // Held out of retrieval until a steward supplies vendor + product.
-                'needs_metadata' => empty($meta['mdm_vendor']) || empty($meta['product']),
+                // Held out of retrieval until it has a usable isolation signal: an MDM vendor+product,
+                // OR a financial data model (vendor-neutral standards like ISDA CDM/FpML), OR a platform.
+                'needs_metadata' => ! (($meta['mdm_vendor'] && $meta['product']) || ! empty($meta['financial_model']) || ! empty($meta['data_platform'])),
                 'content_hash' => $hash,
                 'superseded' => false,
             ]);

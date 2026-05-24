@@ -20,7 +20,7 @@ class Classifier
 
     /**
      * @return array{mdm_vendor:?string, data_platform:?string, product:?string, domain:?string,
-     *               extension:?string, proposed_subject:?array{value:string,label:string},
+     *               extension:?string, financial_model:?string, proposed_subject:?array{value:string,label:string},
      *               confidence:string, reasoning:?string}
      */
     public function classify(string $filename, string $excerpt): array
@@ -34,6 +34,7 @@ class Classifier
         $platforms = Taxonomy::values('data_platform');
         $domains = Taxonomy::values('domain');
         $extensions = Taxonomy::values('extension');
+        $financials = Taxonomy::values('financial_model');
         $products = Taxonomy::products();
 
         $productLines = [];
@@ -50,6 +51,7 @@ class Classifier
             ."Data platforms: ".implode(', ', $platforms)."\n"
             ."Subjects/domains: ".implode(', ', $domains)."\n"
             ."Extensions/verticals (industry or add-on editions): ".implode(', ', $extensions)."\n"
+            ."Financial data models (vendor-neutral standards): ".implode(', ', $financials)."\n"
             ."Products by vendor:\n".implode("\n", $productLines);
 
         $prompt = <<<TXT
@@ -72,6 +74,9 @@ class Classifier
         - "extension": if the doc is an INDUSTRY VERTICAL or ADD-ON edition (e.g. "for Insurance"→insurance,
           "for Retail"→retail, Microsoft Fabric→fabric, "for SAP"→sap, ESG→esg, a consent add-on→consent),
           return that extension value. If it is the CORE product (no vertical/add-on), return null.
+        - "financial_model": for vendor-neutral financial DATA STANDARDS only — ISDA CDM→isda-cdm,
+          FpML→fpml, FIBO→fibo; otherwise null. Such a doc is mdm_vendor=null and domain=finance (do
+          NOT propose a new subject for it).
         - "proposed_subject": null, OR {"value":"<kebab-slug>","label":"<Title>"} ONLY if it clearly belongs to
           a subject NOT in the list above.
         - "confidence": "high" | "medium" | "low".
@@ -86,11 +91,11 @@ class Classifier
             ->withPrompt($prompt)
             ->asText();
 
-        return $this->normalize($response->text, $vendors, $platforms, $domains, $extensions, $products);
+        return $this->normalize($response->text, $vendors, $platforms, $domains, $extensions, $financials, $products);
     }
 
     /** Parse + whitelist the model's JSON so only valid taxonomy values survive. */
-    private function normalize(string $raw, array $vendors, array $platforms, array $domains, array $extensions, array $products): array
+    private function normalize(string $raw, array $vendors, array $platforms, array $domains, array $extensions, array $financials, array $products): array
     {
         $json = trim($raw);
         if (preg_match('/\{.*\}/s', $json, $m)) {
@@ -102,6 +107,7 @@ class Classifier
         $platform = $this->pick($data['data_platform'] ?? null, $platforms);
         $domain = $this->pick($data['domain'] ?? null, $domains);
         $extension = $this->pick($data['extension'] ?? null, $extensions);
+        $financialModel = $this->pick($data['financial_model'] ?? null, $financials);
 
         $vendorProducts = $vendor && ! empty($products[$vendor])
             ? $products[$vendor]
@@ -126,6 +132,7 @@ class Classifier
             'product' => $product,
             'domain' => $domain,
             'extension' => $extension,
+            'financial_model' => $financialModel,
             'proposed_subject' => $proposed,
             'confidence' => $confidence,
             'reasoning' => isset($data['reasoning']) ? (string) $data['reasoning'] : null,
