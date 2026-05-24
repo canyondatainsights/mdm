@@ -5,6 +5,7 @@ import type { Conversation, User } from "@/lib/types";
 import { useState } from "react";
 import { IconButton, TONE_MAP, domainTone } from "./ui";
 import { SidecarMark, SidecarWordmark, SidecarSlogan } from "./Logo";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const NAV = [
   { key: "chat", icon: "sparkle", label: "Ask the hub", tone: "accent" },
@@ -23,6 +24,7 @@ export function Sidebar({
 }) {
   const [q, setQ] = useState("");
   const [hovered, setHovered] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
   const filtered = conversations.filter((c) => c.title.toLowerCase().includes(q.toLowerCase()));
   const initials = user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -106,7 +108,7 @@ export function Sidebar({
                 </button>
                 {showClose && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${c.title}"? This can't be undone.`)) onDelete(c.id); }}
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete(c); }}
                     title="Delete conversation" aria-label="Delete conversation"
                     style={{ position: "absolute", right: 6, top: 7, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 5, border: 0, background: "transparent", color: "var(--fg-4)" }}>
                     <Icon name="close" size={13} />
@@ -131,6 +133,16 @@ export function Sidebar({
           <IconButton icon="logout" label="Sign out" onClick={onLogout} />
         </div>
       </div>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete conversation"
+          message={<>Delete <strong style={{ color: "var(--fg)" }}>“{pendingDelete.title}”</strong>? This can&rsquo;t be undone.</>}
+          confirmLabel="Delete"
+          onConfirm={() => { onDelete(pendingDelete.id); setPendingDelete(null); }}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </aside>
   );
 }
