@@ -3,7 +3,7 @@
 import { api } from "@/lib/api";
 import { Icon } from "@/lib/icons";
 import type { SourceDetail } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { DocTypeBadge, HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
@@ -115,14 +115,41 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
             ))}
           </div>
         )}
-        {src && tab === "lineage" && (
-          <div style={{ fontSize: 12.5, color: "var(--fg-2)", lineHeight: 1.6 }}>
-            This source sits in the <strong>{src.mdm_vendor ?? src.data_platform ?? "neutral"}</strong>
-            {src.mdm_vendor && src.data_platform ? <> / <strong>{src.data_platform}</strong></> : null} stack, domain <strong>{src.domain}</strong>
-            {src.extension ? <>, extension <strong>{src.extension}</strong></> : null}.
-            It is only retrievable in conversations locked to a matching stack.
-          </div>
-        )}
+        {src && tab === "lineage" && (() => {
+          const steps: { kind: string; color: string; node: ReactNode; leaf?: boolean }[] = [];
+          if (src.mdm_vendor) steps.push({ kind: "Vendor", color: vendorTone(src.mdm_vendor, 1).fg, node: <HierPill level={1} tone={vendorTone(src.mdm_vendor, 1)} label={cap(src.mdm_vendor)} /> });
+          if (src.data_platform) steps.push({ kind: "Data platform", color: vendorTone(src.data_platform, 1).fg, node: <HierPill level={1} tone={vendorTone(src.data_platform, 1)} label={cap(src.data_platform)} /> });
+          if (src.financial_model) steps.push({ kind: "Financial model", color: vendorTone(src.financial_model, 1).fg, node: <HierPill level={1} tone={vendorTone(src.financial_model, 1)} label={cap(src.financial_model)} /> });
+          if (src.product) steps.push({ kind: "Product", color: vt.fg, node: <HierPill level={2} tone={vt} label={src.product} /> });
+          if (src.domain && src.domain !== "general") steps.push({ kind: "Data domain", color: subjectTone(src.domain, 2).fg, node: <HierPill level={3} dot={false} tone={subjectTone(src.domain, 2)} label={cap(src.domain)} /> });
+          if (src.extension) steps.push({ kind: "Extension", color: subjectTone(src.domain, 3).fg, node: <HierPill level={4} tone={subjectTone(src.domain, 3)} label={cap(src.extension)} /> });
+          steps.push({ kind: "Document", color: "var(--fg)", leaf: true, node: <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--fg)", wordBreak: "break-word" }}>{src.title}</span> });
+
+          return (
+            <div>
+              <div>
+                {steps.map((s, i) => {
+                  const last = i === steps.length - 1;
+                  return (
+                    <div key={i} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: s.leaf ? 2 : "50%", background: s.color, marginTop: 3, flexShrink: 0, boxShadow: "0 0 0 3px var(--bg-2)" }} />
+                        {!last && <span style={{ flex: 1, width: 2, background: "var(--border-strong)", minHeight: 14, margin: "2px 0" }} />}
+                      </div>
+                      <div style={{ paddingBottom: last ? 0 : 14, minWidth: 0 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-4)", marginBottom: 4 }}>{s.kind}</div>
+                        {s.node}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--fg-4)", marginTop: 12, lineHeight: 1.5 }}>
+                Retrievable only in conversations locked to a matching stack.
+              </div>
+            </div>
+          );
+        })()}
         {src && tab === "related" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {src.related.map((r) => (
