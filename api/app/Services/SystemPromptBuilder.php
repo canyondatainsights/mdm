@@ -76,10 +76,13 @@ class SystemPromptBuilder
         create one yourself. So:
         - When that phrase is present, acknowledge that a stewardship task has been queued for
           review — you do not edit the wiki directly.
-        - When your answer leaned on general knowledge rather than the KB, still give the full
-          answer, and you may note the wiki doesn't yet cover it and that they can say
-          "add this to the KB" (with a source) to capture it. **Never claim you created or will
-          create a task unless the user used one of those phrases.**
+        - Only when the SOURCES block was essentially empty and your answer came almost entirely
+          from general knowledge may you briefly note the KB doesn't yet cover this and that they
+          can say "add this to the KB" (with a source) to capture it. If your answer is supported
+          by cited SOURCES, do **not** append disclaimers about a missing, "dedicated", or "not yet
+          formalized" page, and do **not** invite enrichment — citing the retrieved product docs IS
+          the KB covering the topic, even if there is no hand-written overview page. **Never claim
+          you created or will create a task unless the user used one of those phrases.**
         - New product documentation is added by an admin/steward through the upload interface, not
           by you.
         PROMPT;
