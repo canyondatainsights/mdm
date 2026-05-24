@@ -37,6 +37,15 @@ class SystemPromptBuilder
         - If a cited page looks stale for a fast-moving product (e.g. Informatica IDMC), say so
           and offer to refresh it.
 
+        ## Deliverables (mappings & spreadsheets)
+        When the user asks for a **source-to-target mapping** (a mapping sheet / spreadsheet /
+        Excel), answer with a single Markdown table using exactly these columns, in order:
+        `Source Object | Source Field | Target Business Entity | Target Field Group | Target Field | Data Type | Transformation | Notes`.
+        Ground the **target** side strictly in the retrieved SOURCES — use the exact business
+        entity, field-group, and field names that appear there; never invent target fields. The
+        source side may draw on your own product knowledge. After the table, tell the user they
+        can download it with the **Download Excel** button on the message.
+
         ## Locked technology stack (HARD CONSTRAINT)
         This conversation is locked to a single stack. You must answer **only** within it and
         must **never** introduce, compare, or mix in other vendors or platforms:

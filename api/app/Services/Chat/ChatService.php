@@ -12,6 +12,8 @@ use Generator;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Streaming\Events\TextDeltaEvent;
+use Prism\Prism\ValueObjects\Messages\AssistantMessage;
+use Prism\Prism\ValueObjects\Messages\UserMessage;
 use Throwable;
 
 class ChatService
@@ -29,7 +31,7 @@ class ChatService
     public function stream(Conversation $conversation, string $userText): Generator
     {
         // 1. Persist the user turn.
-        Message::create([
+        $userMsg = Message::create([
             'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => ['text' => $userText],
@@ -55,6 +57,22 @@ class ChatService
         $persona = $this->prompts->persona($conversation);
         $prompt = $contextText."\n\n---\nUser question:\n".$userText;
 
+        // Prior turns give the model memory (so "expand your previous answer" works). The
+        // current turn carries the freshly-retrieved context; history is plain text.
+        $history = Message::where('conversation_id', $conversation->id)
+            ->where('id', '<', $userMsg->id)
+            ->orderBy('id')
+            ->get()
+            ->slice(-(int) config('mdm.chat.history_turns', 10))
+            ->map(fn (Message $m) => $m->role === 'assistant'
+                ? new AssistantMessage($this->messageText($m))
+                : new UserMessage($this->messageText($m)))
+            ->filter(fn ($m) => $m->content !== '')
+            ->values()
+            ->all();
+
+        $messages = [...$history, new UserMessage($prompt)];
+
         // 5. Stream Claude.
         $full = '';
         try {
@@ -62,7 +80,7 @@ class ChatService
                 ->using(Provider::Anthropic, config('mdm.anthropic.model'), ['api_key' => $key])
                 ->withMaxTokens((int) config('mdm.anthropic.max_tokens'))
                 ->withSystemPrompt($persona)
-                ->withPrompt($prompt)
+                ->withMessages($messages)
                 ->asStream();
 
             foreach ($stream as $event) {
@@ -98,6 +116,23 @@ class ChatService
             'citations' => $citations,
             'confidence' => $confidence,
         ];
+    }
+
+    /** Flatten a stored message's content (user {text} or assistant block[]) to plain text. */
+    private function messageText(Message $message): string
+    {
+        $content = $message->content;
+        if (is_array($content) && isset($content['text'])) {
+            return (string) $content['text'];
+        }
+        if (is_array($content)) {
+            return collect($content)
+                ->map(fn ($b) => is_array($b) ? ($b['text'] ?? '') : (string) $b)
+                ->filter()
+                ->implode("\n\n");
+        }
+
+        return (string) $content;
     }
 
     private function maybeCreateStewardshipTask(Conversation $conversation, string $text): ?array

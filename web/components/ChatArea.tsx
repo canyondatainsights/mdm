@@ -9,6 +9,24 @@ import { DocTypeBadge, IconButton, Pill } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "—");
 
+/** True if the markdown contains a GFM table (header row + |---| separator). */
+const hasTable = (t: string) => {
+  const ls = t.split("\n");
+  return ls.some((l, i) => l.includes("|") && /^[\s|:-]*-[\s|:-]*$/.test(ls[i + 1] ?? ""));
+};
+
+async function downloadXlsx(messageId: number) {
+  const blob = await api.exportXlsx(messageId);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mapping-${messageId}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function msgText(m: Message): string {
   if (Array.isArray(m.content)) {
     return m.content.map((b) => ("text" in b ? b.text : "")).join("\n\n");
@@ -60,10 +78,16 @@ function SourcesBlock({ citations, onOpen }: { citations: Citation[]; onOpen: (p
   );
 }
 
-function AssistantMessage({ text, citations, confidence, streaming, onOpenSource }: {
-  text: string; citations: Citation[]; confidence?: string | null; streaming?: boolean; onOpenSource: (path: string) => void;
+function AssistantMessage({ text, citations, confidence, streaming, onOpenSource, messageId }: {
+  text: string; citations: Citation[]; confidence?: string | null; streaming?: boolean; onOpenSource: (path: string) => void; messageId?: number;
 }) {
   const citeByN = (n: number) => { const c = citations.find((x) => x.n === n); if (c) onOpenSource(c.path); };
+  const [exporting, setExporting] = useState(false);
+  const onExport = async () => {
+    if (!messageId) return;
+    setExporting(true);
+    try { await downloadXlsx(messageId); } catch { /* ignore */ } finally { setExporting(false); }
+  };
   return (
     <div style={{ display: "flex", padding: "12px 0", gap: 12 }}>
       <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 7, background: "linear-gradient(135deg, var(--accent), var(--accent-2))", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-sm)" }}>
@@ -78,6 +102,13 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
           <div style={{ display: "flex", gap: 4, padding: "4px 0" }}>
             {[0, 1, 2].map((i) => <span key={i} className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--fg-4)" }} />)}
           </div>
+        )}
+        {!streaming && messageId && hasTable(text) && (
+          <button onClick={onExport} disabled={exporting}
+            style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 12px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12.5, fontWeight: 500, color: "var(--fg-2)", opacity: exporting ? 0.6 : 1 }}>
+            <Icon name="download" size={14} style={{ color: "var(--accent-2)" }} />
+            {exporting ? "Preparing…" : "Download Excel"}
+          </button>
         )}
         {!streaming && <SourcesBlock citations={citations} onOpen={onOpenSource} />}
       </div>
@@ -107,8 +138,12 @@ export function ChatArea({
   const [streamCites, setStreamCites] = useState<Citation[]>([]);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => { setMessages(initialMessages); setStreamText(""); setStreamCites([]); setError(null); }, [conversation?.id, initialMessages]);
+  useEffect(() => {
+    abortRef.current?.abort();   // cancel any in-flight stream when switching conversations
+    setMessages(initialMessages); setStreamText(""); setStreamCites([]); setError(null);
+  }, [conversation?.id, initialMessages]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [messages, streamText]);
 
   const send = async (text: string) => {
@@ -117,6 +152,8 @@ export function ChatArea({
     setError(null);
     setMessages((m) => [...m, { id: Date.now(), role: "user", content: { text } }]);
     setStreaming(true); setStreamText(""); setStreamCites([]);
+    const controller = new AbortController();
+    abortRef.current = controller;
     let acc = "";
     try {
       await streamMessage(conversation.id, text, (e) => {
@@ -129,13 +166,24 @@ export function ChatArea({
           setError(e.message);
           if (e.message.toLowerCase().includes("api key")) onNeedKey();
         }
-      });
+      }, controller.signal);
     } catch (err) {
-      setError((err as Error).message);
+      // User pressed Stop: keep what streamed so far, no error.
+      if (controller.signal.aborted || (err as Error).name === "AbortError") {
+        if (acc.trim()) {
+          setMessages((m) => [...m, { id: Date.now() + 1, role: "assistant", content: [{ type: "markdown", text: acc }], confidence: null }]);
+        }
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setStreaming(false);
+      setStreamText(""); setStreamCites([]);
+      abortRef.current = null;
     }
   };
+
+  const stop = () => abortRef.current?.abort();
 
   if (!conversation) {
     return (
@@ -179,7 +227,7 @@ export function ChatArea({
                 </div>
               </div>
             ) : (
-              <AssistantMessage key={m.id} text={msgText(m)} citations={m.citations ?? []} confidence={m.confidence} onOpenSource={onOpenSource} />
+              <AssistantMessage key={m.id} messageId={m.id} text={msgText(m)} citations={m.citations ?? []} confidence={m.confidence} onOpenSource={onOpenSource} />
             )
           )}
           {streaming && <AssistantMessage text={streamText} citations={streamCites} streaming onOpenSource={onOpenSource} />}
@@ -217,10 +265,17 @@ export function ChatArea({
               <Pill tone="accent" size="xs" icon="database">{cap(conversation.mdm_vendor)} · {cap(conversation.data_platform)}</Pill>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{input.length} / 8,000</span>
-                <button onClick={() => send(input)} disabled={streaming || !input.trim()}
-                  style={{ width: 32, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: input.trim() ? "var(--fg)" : "var(--bg-3)", color: input.trim() ? "var(--bg)" : "var(--fg-4)" }}>
-                  <Icon name="arrow-up" size={15} stroke={2.2} />
-                </button>
+                {streaming ? (
+                  <button onClick={stop} title="Stop generating"
+                    style={{ width: 32, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: "var(--fg)", color: "var(--bg)" }}>
+                    <Icon name="stop" size={12} stroke={2.2} />
+                  </button>
+                ) : (
+                  <button onClick={() => send(input)} disabled={!input.trim()}
+                    style={{ width: 32, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: input.trim() ? "var(--fg)" : "var(--bg-3)", color: input.trim() ? "var(--bg)" : "var(--fg-4)" }}>
+                    <Icon name="arrow-up" size={15} stroke={2.2} />
+                  </button>
+                )}
               </div>
             </div>
           </div>

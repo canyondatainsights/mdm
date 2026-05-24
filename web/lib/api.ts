@@ -73,6 +73,18 @@ export const api = {
       { method: "POST", body: JSON.stringify({ paths }) },
     ),
 
+  // exports
+  exportXlsx: async (messageId: number): Promise<Blob> => {
+    const token = auth.token();
+    const res = await fetch(`${BASE}/exports/xlsx`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ message_id: messageId }),
+    });
+    if (!res.ok) throw new Error(`Export failed: HTTP ${res.status}`);
+    return res.blob();
+  },
+
   // settings (admin)
   settings: () => req<SettingsInfo>("/settings"),
   updateKey: (anthropic_api_key: string) =>

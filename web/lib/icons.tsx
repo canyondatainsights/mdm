@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Copy, Database,
+  ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Copy, Database, Download,
   ExternalLink, FileText, SlidersHorizontal, Workflow, Globe, History, Link2,
   MoreHorizontal, Network, PanelLeft, PanelRight, Paperclip, Pin, Plus,
-  RotateCw, Search, Send, Settings, Shield, Sparkles, Tag, ThumbsDown,
+  RotateCw, Search, Send, Settings, Shield, Sparkles, Square, Tag, ThumbsDown,
   ThumbsUp, X, LogOut, type LucideIcon,
 } from "lucide-react";
 
@@ -17,6 +17,7 @@ const MAP: Record<string, LucideIcon> = {
   tag: Tag, shield: Shield, link: Link2, external: ExternalLink, database: Database,
   graph: Network, history: History, more: MoreHorizontal, "arrow-up": ArrowUp,
   flow: Workflow, globe: Globe, settings: Settings, close: X, logout: LogOut,
+  stop: Square, download: Download,
 };
 
 export function Icon({

@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "pgvector/pgvector": "^0.2.2",
+        "phpoffice/phpspreadsheet": "^5.7",
         "prism-php/prism": "^0.100.1",
         "smalot/pdfparser": "^2.12",
         "spatie/laravel-permission": "^7.4",

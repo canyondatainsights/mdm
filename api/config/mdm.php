@@ -33,6 +33,11 @@ return [
         'top_k' => (int) env('RETRIEVAL_TOP_K', 8),
     ],
 
+    'chat' => [
+        // How many prior messages to replay as context (conversation memory).
+        'history_turns' => (int) env('CHAT_HISTORY_TURNS', 10),
+    ],
+
     'chunking' => [
         'max_tokens' => 950,   // approximate; ~4 chars/token heuristic
         'overlap_tokens' => 130,
