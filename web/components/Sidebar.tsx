@@ -14,13 +14,14 @@ const NAV = [
 ] as const;
 
 export function Sidebar({
-  user, conversations, activeId, onSelect, onNew, onNav, onLogout, view,
+  user, conversations, activeId, onSelect, onNew, onNav, onLogout, view, onDelete,
 }: {
   user: User; conversations: Conversation[]; activeId: number | null;
   onSelect: (id: number) => void; onNew: () => void; onNav: (key: string) => void;
-  onLogout: () => void; view: string;
+  onLogout: () => void; view: string; onDelete: (id: number) => void;
 }) {
   const [q, setQ] = useState("");
+  const [hovered, setHovered] = useState<number | null>(null);
   const filtered = conversations.filter((c) => c.title.toLowerCase().includes(q.toLowerCase()));
   const initials = user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -92,18 +93,30 @@ export function Sidebar({
             const tone = domainTone(c.domains?.[0]);
             const t = TONE_MAP[tone];
             const active = c.id === activeId;
+            const showClose = hovered === c.id || active;
             return (
-              <button key={c.id} onClick={() => onSelect(c.id)}
-                style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 10px 8px 14px", borderRadius: 7, marginBottom: 1,
-                  background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
-                <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? t.fg : t.bd }} />
-                <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{c.title}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--fg-3)" }}>
-                  <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, color: t.fg, background: t.bg, border: `1px solid ${t.bd}`, padding: "0 5px", borderRadius: 3 }}>
-                    {c.mdm_vendor ?? "—"} · {c.data_platform ?? "—"}
-                  </span>
-                </div>
-              </button>
+              <div key={c.id} onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered((h) => (h === c.id ? null : h))}
+                style={{ position: "relative", marginBottom: 1 }}>
+                <button onClick={() => onSelect(c.id)}
+                  style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 30px 8px 14px", borderRadius: 7,
+                    background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
+                  <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? t.fg : t.bd }} />
+                  <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{c.title}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--fg-3)" }}>
+                    <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, color: t.fg, background: t.bg, border: `1px solid ${t.bd}`, padding: "0 5px", borderRadius: 3 }}>
+                      {c.mdm_vendor ?? "—"} · {c.data_platform ?? "—"}
+                    </span>
+                  </div>
+                </button>
+                {showClose && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${c.title}"? This can't be undone.`)) onDelete(c.id); }}
+                    title="Delete conversation" aria-label="Delete conversation"
+                    style={{ position: "absolute", right: 6, top: 7, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 5, border: 0, background: "transparent", color: "var(--fg-4)" }}>
+                    <Icon name="close" size={13} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

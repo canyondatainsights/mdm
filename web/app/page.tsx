@@ -47,6 +47,12 @@ export default function Home() {
     setMessages(c.messages ?? []);
   }, []);
 
+  const removeConversation = useCallback(async (id: number) => {
+    try { await api.deleteConversation(id); } catch { /* ignore */ }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (active?.id === id) { setActive(null); setMessages([]); }
+  }, [active]);
+
   const onCreated = (c: Conversation) => {
     setModal(null);
     setConversations((prev) => [c, ...prev]);
@@ -96,6 +102,7 @@ export default function Home() {
           onNav={onNav}
           onLogout={logout}
           view={navView}
+          onDelete={removeConversation}
         />
       )}
 
