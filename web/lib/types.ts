@@ -115,4 +115,5 @@ export type StreamEvent =
   | { type: "meta"; sources_found: number; enrichment: { task_id: number; status: string } | null }
   | { type: "delta"; text: string }
   | { type: "done"; message_id: number; citations: Citation[]; confidence: string }
+  | { type: "suggestions"; questions: string[] }
   | { type: "error"; message: string };

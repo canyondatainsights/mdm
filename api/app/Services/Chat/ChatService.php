@@ -133,6 +133,17 @@ class ChatService
             'citations' => $citations,
             'confidence' => $confidence,
         ];
+
+        // 7. Contextual follow-up suggestions (best-effort; never affects the answer). Emitted after
+        //    'done' so suggestion generation isn't on the answer's critical path.
+        try {
+            $suggestions = app(SuggestionService::class)->suggest($conversation, $userText, $full);
+            if ($suggestions) {
+                yield ['type' => 'suggestions', 'questions' => $suggestions];
+            }
+        } catch (Throwable) {
+            // ignore — suggestions are optional
+        }
     }
 
     /** Flatten a stored message's content (user {text} or assistant block[]) to plain text. */

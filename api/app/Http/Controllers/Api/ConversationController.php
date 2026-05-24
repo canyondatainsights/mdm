@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
+use App\Services\Chat\SuggestionService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -63,6 +64,14 @@ class ConversationController extends Controller
                 'created_at' => $m->created_at,
             ]),
         ];
+    }
+
+    /** Stack-aware starter questions for a (typically empty) conversation. */
+    public function suggestions(Request $request, Conversation $conversation, SuggestionService $suggestions)
+    {
+        $this->authorizeOwner($request, $conversation);
+
+        return ['questions' => $suggestions->suggest($conversation)];
     }
 
     public function destroy(Request $request, Conversation $conversation)

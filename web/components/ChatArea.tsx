@@ -134,12 +134,6 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
   );
 }
 
-const SUGGESTED = [
-  "What does the wiki say about match rule tuning?",
-  "How should I stage and cleanse customer data before the MDM hub?",
-  "Summarize the GDPR right-to-erasure approach for the golden record.",
-];
-
 export function ChatArea({
   conversation, initialMessages, onOpenSource, onToggleSidebar, sidebarCollapsed,
   onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach,
@@ -155,12 +149,20 @@ export function ChatArea({
   const [streamText, setStreamText] = useState("");
   const [streamCites, setStreamCites] = useState<Citation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     abortRef.current?.abort();   // cancel any in-flight stream when switching conversations
     setMessages(initialMessages); setStreamText(""); setStreamCites([]); setError(null);
+    // Stack-aware starter questions for an empty conversation; follow-ups arrive via the SSE
+    // 'suggestions' event after each answer. Clear on a conversation that already has history.
+    setSuggestions([]);
+    const id = conversation?.id;
+    if (id && initialMessages.length === 0) {
+      api.suggestions(id).then((r) => { if (conversation?.id === id) setSuggestions(r.questions ?? []); }).catch(() => {});
+    }
   }, [conversation?.id, initialMessages]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [messages, streamText]);
 
@@ -179,7 +181,8 @@ export function ChatArea({
         else if (e.type === "done") {
           setMessages((m) => [...m, { id: e.message_id, role: "assistant", content: [{ type: "markdown", text: acc }], citations: e.citations, confidence: e.confidence as Message["confidence"] }]);
           setStreamText(""); setStreamCites([]); onChanged();
-        } else if (e.type === "meta") { /* sources_found available if needed */ }
+        } else if (e.type === "suggestions") { setSuggestions(e.questions ?? []); }
+        else if (e.type === "meta") { /* sources_found available if needed */ }
         else if (e.type === "error") {
           setError(e.message);
           if (e.message.toLowerCase().includes("api key")) onNeedKey();
@@ -260,15 +263,17 @@ export function ChatArea({
       {/* composer */}
       <div style={{ display: "flex", justifyContent: "center", background: "var(--bg)" }}>
         <div style={{ width: "100%", maxWidth: 760, padding: "0 24px 18px" }}>
-          <div style={{ padding: "4px 0 10px", display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {SUGGESTED.map((p) => (
-              <button key={p} onClick={() => send(p)} disabled={streaming}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 999, fontSize: 12.5, color: "var(--fg-2)", fontWeight: 500 }}>
-                <Icon name="sparkle" size={13} style={{ color: "var(--fg-3)" }} />
-                <span>{p}</span>
-              </button>
-            ))}
-          </div>
+          {suggestions.length > 0 && (
+            <div style={{ padding: "4px 0 10px", display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {suggestions.map((p) => (
+                <button key={p} onClick={() => send(p)} disabled={streaming}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 999, fontSize: 12.5, color: "var(--fg-2)", fontWeight: 500 }}>
+                  <Icon name="sparkle" size={13} style={{ color: "var(--fg-3)" }} />
+                  <span>{p}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--shadow)", padding: "10px 12px 8px" }}>
             <textarea
               value={input}

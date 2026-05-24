@@ -57,6 +57,7 @@ export const api = {
   createConversation: (body: Partial<Conversation>) =>
     req<Conversation>("/conversations", { method: "POST", body: JSON.stringify(body) }),
   conversation: (id: number) => req<Conversation & { messages: Message[] }>(`/conversations/${id}`),
+  suggestions: (id: number) => req<{ questions: string[] }>(`/conversations/${id}/suggestions`),
   deleteConversation: (id: number) => req(`/conversations/${id}`, { method: "DELETE" }),
 
   // sources
