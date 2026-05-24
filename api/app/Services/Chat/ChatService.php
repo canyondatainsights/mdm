@@ -22,6 +22,7 @@ class ChatService
         private Retriever $retriever,
         private SystemPromptBuilder $prompts,
         private SettingsService $settings,
+        private ExtensionResolver $extensions,
     ) {}
 
     /**
@@ -48,13 +49,14 @@ class ChatService
             return;
         }
 
-        // 4. Retrieve isolated context.
+        // 4. Resolve extension opt-in from the message (so retrieval + the prompt are scoped), then retrieve.
+        $extInfo = $this->extensions->resolve($conversation, $userText);
         $chunks = $this->retriever->retrieve($conversation, $userText);
         [$contextText, $sourceMap] = $this->prompts->contextBlock($chunks);
 
         yield ['type' => 'meta', 'sources_found' => count($sourceMap), 'enrichment' => $enrichment];
 
-        $persona = $this->prompts->persona($conversation);
+        $persona = $this->prompts->persona($conversation, $extInfo['available'], $extInfo['included']);
         $prompt = $contextText."\n\n---\nUser question:\n".$userText;
 
         // Prior turns give the model memory (so "expand your previous answer" works). The

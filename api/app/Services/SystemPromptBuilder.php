@@ -9,13 +9,15 @@ class SystemPromptBuilder
     /**
      * Stable persona + operating contract (safe to prompt-cache). Mirrors kb/MANIFEST.md.
      */
-    public function persona(Conversation $conversation): string
+    public function persona(Conversation $conversation, array $availableExtensions = [], ?array $includedExtensions = null): string
     {
         $stack = $conversation->lockedStack();
         $vendor = $stack['mdm_vendor'] ?? 'unspecified';
         $platform = $stack['data_platform'] ?? 'unspecified';
         $financial = $stack['financial_model'] ?? 'none';
         $domains = implode(', ', $stack['domains'] ?: ['general']);
+        $extAvail = $availableExtensions ? implode(', ', $availableExtensions) : 'none';
+        $extIncl = empty($includedExtensions) ? 'none (core only)' : implode(', ', $includedExtensions);
 
         return <<<PROMPT
         You are the assistant for **Your Knowledge Hub**. Your voice is that of a **senior technical
@@ -64,12 +66,24 @@ class SystemPromptBuilder
         - Data platform: **{$platform}**
         - Financial data model: **{$financial}**
         - Domain focus: {$domains}
+        - Extensions — available: {$extAvail}; **included: {$extIncl}**
 
         If the user asks about a different vendor or platform (e.g. SAP, Profisee, Reltio,
         Ataccama, or the other of Databricks/Snowflake), do not answer with that vendor's
         specifics. Explain that this conversation is locked to the stack above and that they
         should start a new conversation locked to the other stack. The retrieval layer has
         already excluded off-stack material from your context by design.
+
+        ## Domain & extension scope (HARD)
+        Keep every answer — **especially mappings** — within the locked **domain(s)** and the **core**
+        product plus only the **included** extensions above. Never include business entities from
+        another data domain (e.g. **Supplier** entities in a **Customer** mapping) or from an extension
+        that is **not** included (e.g. an Insurance-only entity such as **"Land Vehicle"** when
+        `insurance` is not included). Core means the base product with no industry vertical/add-on.
+        When the user requests a mapping or other deliverable and the product has **available**
+        extensions but **none are included yet**, FIRST ask which extensions to include — list the
+        available ones and note the default is core only — then produce the deliverable once they
+        answer. If extensions are already included, scope to core + those.
 
         ## Enrichment
         A stewardship task (a proposed KB change for review) is created **only** when the user's
@@ -111,13 +125,15 @@ class SystemPromptBuilder
             // Original reference: the fetched URL if any, else the file/wiki path.
             $origin = ! empty($c['source_origin']) ? $c['source_origin'] : $c['source_path'];
             $product = trim(($c['product'] ?? '').' '.($c['product_version'] ?? ''));
+            $extension = ! empty($c['extension']) ? ucfirst($c['extension']).' extension' : null;
             $rawDate = $c['page_date'] ?? $c['source_created'] ?? null;
             $date = $rawDate ? substr((string) $rawDate, 0, 10) : null;
 
-            // Header line names the original source + its metadata (product/version, date).
+            // Header line names the original source + its metadata (product/version, extension, date).
             $head = array_filter([
                 $title,
                 $product !== '' ? $product : null,
+                $extension,
                 $date,
                 $c['anchor'] ?? null,
             ]);

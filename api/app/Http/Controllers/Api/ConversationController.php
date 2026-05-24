@@ -29,6 +29,8 @@ class ConversationController extends Controller
             'financial_model' => ['nullable', Rule::in($dims['financial_model'])],
             'domains' => ['array'],
             'domains.*' => [Rule::in($dims['domain'])],
+            'extensions' => ['nullable', 'array'],
+            'extensions.*' => [Rule::in($dims['extension'])],
             'pii_redacted' => ['boolean'],
         ]);
 
@@ -39,6 +41,7 @@ class ConversationController extends Controller
             'data_platform' => $data['data_platform'],
             'financial_model' => $data['financial_model'] ?? null,
             'domains' => $data['domains'] ?? ['general'],
+            'extensions' => $data['extensions'] ?? null,
             'pii_redacted' => $data['pii_redacted'] ?? true,
         ]);
 
@@ -80,6 +83,7 @@ class ConversationController extends Controller
             'data_platform' => $c->data_platform,
             'financial_model' => $c->financial_model,
             'domains' => $c->domains,
+            'extensions' => $c->extensions,
             'pii_redacted' => $c->pii_redacted,
             'updated_at' => $c->updated_at,
         ];

@@ -47,6 +47,21 @@ class Retriever
         return $this->baseQuery($conversation->lockedStack())->count();
     }
 
+    /**
+     * Distinct industry/add-on extensions present in the content eligible for this stack (ignoring
+     * the extension opt-in itself) — i.e. the extensions the assistant can offer to include.
+     *
+     * @return array<int,string>
+     */
+    public function availableExtensions(Conversation $conversation): array
+    {
+        $q = DB::table('chunks')->leftJoin('sources', 'sources.id', '=', 'chunks.source_id');
+        $this->applyIsolation($q, $conversation->lockedStack(), withExtensionGate: false);
+
+        return $q->whereNotNull('chunks.extension')
+            ->distinct()->pluck('chunks.extension')->all();
+    }
+
     private function baseQuery(array $stack)
     {
         // Join the parent source/wiki row so citations can reference the ORIGINAL source
@@ -57,19 +72,24 @@ class Retriever
             ->select([
                 'chunks.id', 'chunks.source_kind', 'chunks.source_path', 'chunks.anchor', 'chunks.content',
                 'chunks.mdm_vendor', 'chunks.data_platform', 'chunks.financial_model', 'chunks.domain', 'chunks.scope',
-                'chunks.product', 'chunks.product_version',
+                'chunks.product', 'chunks.product_version', 'chunks.extension',
                 'sources.title as source_title', 'sources.owner as source_origin',
                 'sources.doc_type as source_doc_type', 'sources.created_at as source_created',
                 'wiki_pages.title as wiki_title', 'wiki_pages.page_updated_at as page_date',
             ]);
 
+        $this->applyIsolation($q, $stack, withExtensionGate: true);
+
+        return $q;
+    }
+
+    /** Apply the vendor-isolation + domain + product + (optional) extension filters to a query. */
+    private function applyIsolation($q, array $stack, bool $withExtensionGate): void
+    {
         // Hold incomplete sources out of retrieval until a steward tags them (vendor + product),
-        // and exclude superseded copies (older duplicates / earlier versions).
+        // exclude superseded copies, and require approval. Wiki-page chunks (no source) are exempt.
         $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.needs_metadata', false));
         $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.superseded', false));
-
-        // Approval gate: a source-backed chunk is eligible only once the source is approved.
-        // Wiki-page chunks (no source row) are unaffected.
         $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.approved', true));
 
         // Hard vendor / platform / financial-model isolation (qualified — joined tables share these names).
@@ -100,6 +120,16 @@ class Retriever
             $q->where(fn ($w) => $w->whereNull('chunks.product_version')->orWhere('chunks.product_version', $stack['product_version']));
         }
 
-        return $q;
+        // Extension opt-in: core content (extension NULL) is always eligible; a vertical/add-on's
+        // chunks surface only when the conversation has opted into that extension. NULL/[] = core only.
+        if ($withExtensionGate) {
+            $exts = $stack['extensions'] ?? [];
+            $q->where(function ($w) use ($exts) {
+                $w->whereNull('chunks.extension');
+                if (! empty($exts)) {
+                    $w->orWhereIn('chunks.extension', $exts);
+                }
+            });
+        }
     }
 }
