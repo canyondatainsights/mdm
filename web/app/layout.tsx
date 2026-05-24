@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,17 +14,23 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
+// Brand typeface for the Sidecar wordmark.
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["500", "700", "800"],
+  variable: "--font-manrope",
+});
+
 export const metadata: Metadata = {
-  title: "MDM Knowledge Hub",
-  description:
-    "Governed, vendor-isolated MDM knowledge base with a senior-architect assistant.",
+  title: "Sidecar — Your Knowledge Hub",
+  description: "Sidecar — your governed, vendor-isolated MDM knowledge assistant. Fetches what you need.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable} ${manrope.variable}`}>
       <body>{children}</body>
     </html>
   );

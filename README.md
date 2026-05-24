@@ -1,4 +1,4 @@
-# MDM Knowledge Hub
+# Your Knowledge Hub
 
 A multi-user, chat-queryable knowledge platform for **Master Data Management**. It pairs a
 governed Markdown knowledge base (Informatica MDM/Customer 360, data quality,

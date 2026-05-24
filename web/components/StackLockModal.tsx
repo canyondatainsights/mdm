@@ -105,8 +105,8 @@ export function StackLockModal({
         onClick={create}
         disabled={busy}
         style={{
-          width: "100%", padding: "10px 12px", borderRadius: 9, color: "white", border: "1px solid oklch(0.40 0.16 258)",
-          background: "linear-gradient(180deg, oklch(0.55 0.16 252), oklch(0.46 0.16 258))",
+          width: "100%", padding: "10px 12px", borderRadius: 9, color: "white", border: "1px solid oklch(0.48 0.18 33)",
+          background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))",
           fontSize: 13, fontWeight: 600, opacity: busy ? 0.6 : 1,
         }}
       >

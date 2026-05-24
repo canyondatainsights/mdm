@@ -79,7 +79,7 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {onOpenUpload && (
             <button onClick={onOpenUpload}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", marginBottom: 4, padding: "7px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.40 0.16 258)", background: "linear-gradient(180deg, oklch(0.55 0.16 252), oklch(0.46 0.16 258))", fontSize: 12.5, fontWeight: 600 }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", marginBottom: 4, padding: "7px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 12.5, fontWeight: 600 }}>
               + Upload documentation
             </button>
           )}
@@ -118,7 +118,7 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
               <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginTop: 6 }}>{t.summary}</div>
               {canReview && t.status === "pending" && (
                 <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <button onClick={() => review(t.id, "approve")} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: "white", border: "1px solid oklch(0.40 0.16 258)", background: "var(--accent)" }}>Approve</button>
+                  <button onClick={() => review(t.id, "approve")} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "var(--accent)" }}>Approve</button>
                   <button onClick={() => review(t.id, "reject")} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: "var(--fg-2)", border: "1px solid var(--border)", background: "var(--panel)" }}>Reject</button>
                 </div>
               )}

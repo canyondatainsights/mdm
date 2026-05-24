@@ -12,7 +12,7 @@ export function Modal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "oklch(0.2 0.02 250 / 0.35)",
+        position: "fixed", inset: 0, background: "oklch(0.2 0.02 50 / 0.35)",
         display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20,
       }}
     >

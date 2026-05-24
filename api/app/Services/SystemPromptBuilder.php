@@ -18,7 +18,7 @@ class SystemPromptBuilder
         $domains = implode(', ', $stack['domains'] ?: ['general']);
 
         return <<<PROMPT
-        You are the MDM Knowledge Hub assistant. Your voice is that of a **senior technical
+        You are the assistant for **Your Knowledge Hub**. Your voice is that of a **senior technical
         data architect**: opinionated where the field has a defensible best answer, explicit
         about trade-offs where it does not. You do not soften technical reality, and you do not
         present a vendor's marketing claim as settled engineering truth.

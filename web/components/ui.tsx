@@ -61,11 +61,11 @@ export function IconButton({
 const DOC_COLORS: Record<string, [string, string]> = {
   PDF: ["oklch(0.96 0.04 27)", "oklch(0.50 0.16 27)"],
   PPTX: ["oklch(0.96 0.04 50)", "oklch(0.50 0.15 50)"],
-  DOCX: ["oklch(0.96 0.04 252)", "oklch(0.45 0.14 252)"],
+  DOCX: ["oklch(0.96 0.04 42)", "oklch(0.52 0.15 33)"],
   XLSX: ["oklch(0.96 0.04 155)", "oklch(0.42 0.13 155)"],
-  Confluence: ["oklch(0.96 0.04 252)", "oklch(0.45 0.14 252)"],
-  MD: ["oklch(0.95 0.02 250)", "oklch(0.45 0.02 250)"],
-  TXT: ["oklch(0.95 0.02 250)", "oklch(0.45 0.02 250)"],
+  Confluence: ["oklch(0.96 0.04 42)", "oklch(0.52 0.15 33)"],
+  MD: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
+  TXT: ["oklch(0.95 0.015 70)", "oklch(0.45 0.02 60)"],
 };
 
 export function DocTypeBadge({ type }: { type: string }) {
@@ -89,7 +89,7 @@ export function GradientAvatar({ initials, size = 30 }: { initials: string; size
     <div
       style={{
         width: size, height: size, borderRadius: "50%",
-        background: "linear-gradient(135deg, oklch(0.55 0.16 295), oklch(0.50 0.15 252))",
+        background: "linear-gradient(135deg, oklch(0.66 0.16 42), oklch(0.58 0.16 35))",
         color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center",
         fontSize: size * 0.4, fontWeight: 600, letterSpacing: "0.02em", flexShrink: 0,
       }}
@@ -100,8 +100,8 @@ export function GradientAvatar({ initials, size = 30 }: { initials: string; size
 }
 
 export const TONE_MAP: Record<string, { fg: string; bg: string; bd: string }> = {
-  accent: { fg: "oklch(0.50 0.14 252)", bg: "oklch(0.95 0.04 252)", bd: "oklch(0.86 0.06 252)" },
-  violet: { fg: "oklch(0.50 0.16 295)", bg: "oklch(0.95 0.04 295)", bd: "oklch(0.86 0.07 295)" },
+  accent: { fg: "oklch(0.58 0.15 35)", bg: "oklch(0.95 0.04 42)", bd: "oklch(0.86 0.06 42)" },
+  violet: { fg: "oklch(0.62 0.17 36)", bg: "oklch(0.95 0.04 36)", bd: "oklch(0.86 0.06 36)" },
   teal: { fg: "oklch(0.50 0.12 195)", bg: "oklch(0.95 0.04 195)", bd: "oklch(0.86 0.06 195)" },
   amber: { fg: "oklch(0.50 0.13 70)", bg: "oklch(0.96 0.05 80)", bd: "oklch(0.87 0.07 75)" },
   rose: { fg: "oklch(0.55 0.16 15)", bg: "oklch(0.96 0.04 15)", bd: "oklch(0.87 0.06 15)" },
