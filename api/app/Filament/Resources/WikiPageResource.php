@@ -143,7 +143,7 @@ class WikiPageResource extends Resource
                                 return;
                             }
                             try {
-                                $fetched = app(\App\Services\Kb\UrlFetcher::class)->fetch($url);
+                                $fetched = app(\App\Services\Kb\UrlFetcher::class)->fetch($url, withImages: true);
                             } catch (\Throwable $e) {
                                 Notification::make()->title('Fetch failed')->body($e->getMessage())->danger()->send();
 
@@ -169,6 +169,12 @@ class WikiPageResource extends Resource
                                     Notification::make()->title('AI structuring failed — inserted raw text')->body($e->getMessage())->warning()->send();
                                 }
                             }
+                            // Download any content images (diagrams) into kb media and append as figures.
+                            $figs = static::downloadImagesAsMarkdown($fetched['images'] ?? [], $url);
+                            if ($figs !== '') {
+                                $body = trim($body)."\n\n## Figures\n\n".$figs;
+                            }
+
                             // Provenance footer (renders as a link in the reader).
                             $host = parse_url($url, PHP_URL_HOST) ?: 'source';
                             $body = trim($body)."\n\n*Source: [{$host}]({$url})*";
@@ -264,6 +270,62 @@ class WikiPageResource extends Resource
                     ])
                     ->action(fn ($records, array $data) => $records->each->update(['domain' => $data['domain']])),
             ]);
+    }
+
+    /**
+     * Download candidate content images into the kb_media disk and return markdown image references.
+     * Filters non-images and tiny icons; caps the count. Used by the "Import from URL" action.
+     *
+     * @param  array<int, array{src:string, alt:string}>  $images
+     */
+    protected static function downloadImagesAsMarkdown(array $images, string $pageUrl): string
+    {
+        if (empty($images)) {
+            return '';
+        }
+        $disk = \Illuminate\Support\Facades\Storage::disk('kb_media');
+        $slug = \Illuminate\Support\Str::slug((parse_url($pageUrl, PHP_URL_HOST) ?: 'src').' '.trim((string) parse_url($pageUrl, PHP_URL_PATH), '/'))
+            ?: substr(md5($pageUrl), 0, 10);
+        $dir = 'imports/'.$slug;
+
+        $figs = [];
+        $n = 0;
+        foreach ($images as $im) {
+            if ($n >= 10) {
+                break;
+            }
+            try {
+                $resp = \Illuminate\Support\Facades\Http::timeout(15)
+                    ->withHeaders(['User-Agent' => 'MDM-KnowledgeHub/1.0'])->get($im['src']);
+                if (! $resp->successful()) {
+                    continue;
+                }
+                $ct = strtolower((string) $resp->header('Content-Type'));
+                if (! str_starts_with($ct, 'image/')) {
+                    continue;
+                }
+                $bytes = $resp->body();
+                if (strlen($bytes) < 3000) {
+                    continue; // likely an icon/spacer
+                }
+                $ext = match (true) {
+                    str_contains($ct, 'png') => 'png',
+                    str_contains($ct, 'jpeg'), str_contains($ct, 'jpg') => 'jpg',
+                    str_contains($ct, 'gif') => 'gif',
+                    str_contains($ct, 'webp') => 'webp',
+                    str_contains($ct, 'svg') => 'svg',
+                    default => pathinfo(parse_url($im['src'], PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'img',
+                };
+                $name = $dir.'/'.(++$n).'.'.$ext;
+                $disk->put($name, $bytes);
+                $alt = str_replace(['[', ']'], '', $im['alt'] !== '' ? $im['alt'] : 'Figure '.$n);
+                $figs[] = "![{$alt}](/media/wiki/{$name})";
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return implode("\n\n", $figs);
     }
 
     public static function getPages(): array
