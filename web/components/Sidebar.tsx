@@ -132,7 +132,6 @@ export function Sidebar({
             <span style={{ fontSize: 12.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</span>
             <span style={{ fontSize: 11, color: "var(--fg-3)" }}>{user.title ?? user.roles.join(", ")}</span>
           </div>
-          {user.roles.includes("Admin") && <IconButton icon="settings" label="Settings" onClick={() => onNav("settings")} />}
           <IconButton icon="logout" label="Sign out" onClick={onLogout} />
         </div>
       </div>

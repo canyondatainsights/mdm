@@ -7,9 +7,9 @@ import { BrowseModal } from "@/components/BrowseModal";
 import { ChatArea } from "@/components/ChatArea";
 import { Inspector } from "@/components/Inspector";
 import { Login } from "@/components/Login";
-import { SettingsModal } from "@/components/SettingsModal";
 import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
+// Claude API key + model are managed in the admin panel (AI Settings), not the end-user app.
 import { UploadModal } from "@/components/UploadModal";
 import { WikiBrowser } from "@/components/WikiBrowser";
 import { useIdleLogout } from "@/lib/useIdleLogout";
@@ -26,7 +26,7 @@ export default function Home() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [openSource, setOpenSource] = useState<string | null>(null);
 
-  const [modal, setModal] = useState<null | "stacklock" | "settings" | "browse" | "upload">(null);
+  const [modal, setModal] = useState<null | "stacklock" | "browse" | "upload">(null);
   const [browseView, setBrowseView] = useState("sources");
   const [navView, setNavView] = useState("chat");
 
@@ -65,7 +65,6 @@ export default function Home() {
 
   const onNav = (key: string) => {
     if (key === "chat") { setNavView("chat"); return; }
-    if (key === "settings") { setModal("settings"); return; }
     // Wiki browsing takes over the main viewer (roomy reader); other panels open in the modal.
     if (key === "wiki") { setNavView("wiki"); return; }
     setBrowseView(key);
@@ -128,7 +127,7 @@ export default function Home() {
           onToggleInspector={() => setInspectorOpen((o) => !o)}
           inspectorOpen={inspectorOpen}
           onChanged={refreshConversations}
-          onNeedKey={() => { if (user.roles.includes("Admin")) setModal("settings"); }}
+          onNeedKey={() => {}}
           onNew={() => setModal("stacklock")}
           onAttach={openUpload}
         />
@@ -137,7 +136,6 @@ export default function Home() {
       {inspectorOpen && navView !== "wiki" && <Inspector path={openSource} onClose={() => setInspectorOpen(false)} />}
 
       {modal === "stacklock" && <StackLockModal onClose={() => setModal(null)} onCreated={onCreated} />}
-      {modal === "settings" && <SettingsModal onClose={() => setModal(null)} />}
       {modal === "browse" && (
         <BrowseModal view={browseView} user={user} onClose={() => { setModal(null); setNavView("chat"); }} onOpenSource={openSourceInInspector} onOpenUpload={openUpload} />
       )}
