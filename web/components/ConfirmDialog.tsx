@@ -33,6 +33,7 @@ export function ConfirmDialog({
         <button
           onClick={onCancel}
           autoFocus
+          className="hov-row"
           style={{
             padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
             background: "var(--panel)", color: "var(--fg-2)",
@@ -43,6 +44,7 @@ export function ConfirmDialog({
         </button>
         <button
           onClick={onConfirm}
+          className="hov-lift"
           style={{
             padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: "white",
             border: danger ? "1px solid oklch(0.50 0.18 25)" : "1px solid oklch(0.48 0.18 33)",

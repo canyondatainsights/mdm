@@ -123,7 +123,7 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
           </div>
         )}
         {!streaming && messageId && hasTable(text) && (
-          <button onClick={onExport} disabled={exporting}
+          <button onClick={onExport} disabled={exporting} className="hov-row"
             style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 12px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12.5, fontWeight: 500, color: "var(--fg-2)", opacity: exporting ? 0.6 : 1 }}>
             <Icon name="download" size={14} style={{ color: "var(--accent-2)" }} />
             {exporting ? "Preparing…" : "Download Excel"}
@@ -270,7 +270,7 @@ export function ChatArea({
           {suggestions.length > 0 && (
             <div style={{ padding: "4px 0 10px", display: "flex", flexWrap: "wrap", gap: 6 }}>
               {suggestions.map((p) => (
-                <button key={p} onClick={() => send(p)} disabled={streaming}
+                <button key={p} onClick={() => send(p)} disabled={streaming} className="hov-chip"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 999, fontSize: 12.5, color: "var(--fg-2)", fontWeight: 500 }}>
                   <Icon name="sparkle" size={13} style={{ color: "var(--fg-3)" }} />
                   <span>{p}</span>
@@ -294,12 +294,12 @@ export function ChatArea({
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{input.length} / 8,000</span>
                 {streaming ? (
-                  <button onClick={stop} title="Stop generating"
+                  <button onClick={stop} title="Stop generating" className="hov-lift"
                     style={{ width: 32, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: "var(--fg)", color: "var(--bg)" }}>
                     <Icon name="stop" size={12} stroke={2.2} />
                   </button>
                 ) : (
-                  <button onClick={() => send(input)} disabled={!input.trim()}
+                  <button onClick={() => send(input)} disabled={!input.trim()} className="hov-lift"
                     style={{ width: 32, height: 32, display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: 8, background: input.trim() ? "var(--fg)" : "var(--bg-3)", color: input.trim() ? "var(--bg)" : "var(--fg-4)" }}>
                     <Icon name="arrow-up" size={15} stroke={2.2} />
                   </button>

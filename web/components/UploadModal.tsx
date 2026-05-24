@@ -304,6 +304,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
         <button
           onClick={scanAndClassify}
           disabled={classifying || busy}
+          className="hov-row"
           style={{
             flex: "0 0 auto", padding: "9px 14px", borderRadius: 8, color: "var(--fg)", border: "1px solid var(--border)",
             background: "var(--panel)", boxShadow: "var(--shadow-sm)", fontSize: 13, fontWeight: 600, opacity: classifying || busy ? 0.5 : 1,
@@ -314,6 +315,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
         <button
           onClick={submit}
           disabled={busy || classifying}
+          className="hov-lift"
           style={{
             flex: 1, padding: "9px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.48 0.18 33)",
             background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))",

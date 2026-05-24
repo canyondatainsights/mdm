@@ -46,7 +46,7 @@ export function Login({ onAuthed }: { onAuthed: (u: User) => void }) {
 
         {err && <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 12 }}>{err}</div>}
 
-        <button type="submit" disabled={busy}
+        <button type="submit" disabled={busy} className="hov-lift"
           style={{ width: "100%", padding: "10px 12px", borderRadius: 9, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: busy ? 0.6 : 1 }}>
           <Icon name="sparkle" size={15} stroke={2} /> {busy ? "Signing in…" : "Sign in"}
         </button>

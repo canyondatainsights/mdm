@@ -47,7 +47,7 @@ export function Sidebar({
 
         {/* new conversation */}
         <div style={{ padding: "4px 12px 10px" }}>
-          <button onClick={onNew}
+          <button onClick={onNew} className="hov-lift"
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", color: "white", borderRadius: 9, fontSize: 13, fontWeight: 500,
               background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", border: "1px solid oklch(0.48 0.18 33)",
               boxShadow: "0 1px 0 oklch(0.99 0 0 / 0.30) inset, 0 6px 16px -6px oklch(0.48 0.18 33 / 0.55)" }}>
@@ -72,7 +72,7 @@ export function Sidebar({
             const t = TONE_MAP[item.tone];
             const active = view === item.key;
             return (
-              <button key={item.key} onClick={() => onNav(item.key)}
+              <button key={item.key} onClick={() => onNav(item.key)} className="hov-row"
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 7, textAlign: "left",
                   background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent",
                   boxShadow: active ? "var(--shadow-sm)" : "none", color: active ? "var(--fg)" : "var(--fg-2)", fontSize: 13, fontWeight: active ? 500 : 400 }}>
@@ -97,7 +97,7 @@ export function Sidebar({
             return (
               <div key={c.id} onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered((h) => (h === c.id ? null : h))}
                 style={{ position: "relative", marginBottom: 1 }}>
-                <button onClick={() => onSelect(c.id)}
+                <button onClick={() => onSelect(c.id)} className="hov-row"
                   style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 30px 8px 14px", borderRadius: 7,
                     background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
                   <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? vt.fg : vt.border }} />
@@ -111,7 +111,7 @@ export function Sidebar({
                 {showClose && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setPendingDelete(c); }}
-                    title="Delete conversation" aria-label="Delete conversation"
+                    title="Delete conversation" aria-label="Delete conversation" className="hov-icon"
                     style={{ position: "absolute", right: 6, top: 7, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 5, border: 0, background: "transparent", color: "var(--fg-4)" }}>
                     <Icon name="close" size={13} />
                   </button>

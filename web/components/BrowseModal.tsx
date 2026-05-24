@@ -80,14 +80,14 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
       {view === "sources" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {onOpenUpload && (
-            <button onClick={onOpenUpload}
+            <button onClick={onOpenUpload} className="hov-lift"
               style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", marginBottom: 4, padding: "7px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 12.5, fontWeight: 600 }}>
               + Upload documentation
             </button>
           )}
           {!sources && <div style={{ fontSize: 12.5, color: "var(--fg-4)" }}>Loading…</div>}
           {sources?.map((s) => (
-            <button key={s.id} onClick={() => { if (s.kind === "wiki") onOpenSource(s.path); }}
+            <button key={s.id} onClick={() => { if (s.kind === "wiki") onOpenSource(s.path); }} className="hov-row"
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 8, textAlign: "left", width: "100%" }}>
               <DocTypeBadge type={s.doc_type} />
               <div style={{ flex: 1, minWidth: 0 }}>

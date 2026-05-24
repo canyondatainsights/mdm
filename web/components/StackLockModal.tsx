@@ -116,6 +116,7 @@ export function StackLockModal({
       <button
         onClick={create}
         disabled={busy}
+        className="hov-lift"
         style={{
           width: "100%", padding: "10px 12px", borderRadius: 9, color: "white", border: "1px solid oklch(0.48 0.18 33)",
           background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))",

@@ -43,7 +43,7 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>{src.title}</div>
                 <div style={{ fontSize: 11.5, color: "var(--fg-3)" }}>{src.path}{src.updated ? ` · ${src.updated}` : ""}</div>
                 {src.origin && (
-                  <a href={src.origin} target="_blank" rel="noopener noreferrer"
+                  <a href={src.origin} target="_blank" rel="noopener noreferrer" className="hov-link"
                     style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: 11.5, color: "var(--accent-2)", wordBreak: "break-all" }}>
                     <Icon name="external" size={12} /> {src.origin}
                   </a>
@@ -63,7 +63,7 @@ export function Inspector({ path, onClose }: { path: string | null; onClose: () 
         )}
         <div style={{ display: "flex", gap: 2, marginTop: 12, borderBottom: "1px solid var(--border)", marginLeft: -14, marginRight: -14, paddingLeft: 14, paddingRight: 14 }}>
           {(["source", "lineage", "related"] as const).map((id) => (
-            <button key={id} onClick={() => setTab(id)}
+            <button key={id} onClick={() => setTab(id)} className="hov-link"
               style={{ padding: "8px 4px", marginRight: 14, marginBottom: -1, background: "transparent", border: 0, borderBottom: tab === id ? "2px solid var(--fg)" : "2px solid transparent", color: tab === id ? "var(--fg)" : "var(--fg-3)", fontSize: 12.5, fontWeight: tab === id ? 600 : 500 }}>
               {id === "source" ? "Excerpt" : id.charAt(0).toUpperCase() + id.slice(1)}
             </button>

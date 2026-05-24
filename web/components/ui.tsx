@@ -45,6 +45,7 @@ export function IconButton({
       title={label}
       aria-label={label}
       disabled={disabled}
+      className="hov-icon"
       style={{
         width: size, height: size, display: "inline-flex", alignItems: "center",
         justifyContent: "center", background: active ? "var(--bg-3)" : "transparent",

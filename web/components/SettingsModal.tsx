@@ -63,6 +63,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         <button
           onClick={save}
           disabled={busy || key.length < 8}
+          className="hov-lift"
           style={{
             flex: 1, padding: "9px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.48 0.18 33)",
             background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))",
