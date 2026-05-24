@@ -199,7 +199,7 @@ class UploadController extends Controller
     {
         return [
             'mdm_vendor' => null, 'data_platform' => null, 'product' => null, 'domain' => null,
-            'proposed_subject' => null, 'confidence' => 'low', 'reasoning' => null, 'error' => $error,
+            'extension' => null, 'proposed_subject' => null, 'confidence' => 'low', 'reasoning' => null, 'error' => $error,
         ];
     }
 }

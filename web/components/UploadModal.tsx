@@ -23,6 +23,7 @@ type ReviewRow = {
   product: string;
   product_version: string;
   domain: string;
+  extension: string;
   scope: string;
   confidence: Conf;
   reasoning: string | null;
@@ -96,6 +97,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
           product: s.product ?? "",
           product_version: "",
           domain: s.domain ?? "",
+          extension: s.extension ?? "",
           scope: s.mdm_vendor || s.data_platform ? "vendor-specific" : "neutral",
           confidence: s.confidence,
           reasoning: s.error ? `Classify failed: ${s.error}` : s.reasoning,
@@ -140,6 +142,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
             product: r.product || null,
             product_version: r.product_version || null,
             domain: r.applyNew && r.proposed ? r.proposed.value : (r.domain || null),
+            extension: r.extension || null,
             scope: r.scope || null,
           };
           if (r.applyNew && r.proposed) tags.new_subject = r.proposed;
@@ -271,6 +274,10 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
                       {dims?.domain.map((v) => <option key={v} value={v}>{cap(v)}</option>)}
                     </select>
                     <input value={r.product_version} onChange={(e) => updateRow(i, { product_version: e.target.value })} placeholder="Version" style={miniField} />
+                    <select value={r.extension} onChange={(e) => updateRow(i, { extension: e.target.value })} style={miniField}>
+                      <option value="">Extension — core (none)</option>
+                      {(dims?.extension ?? []).map((v) => <option key={v} value={v}>{cap(v)}</option>)}
+                    </select>
                   </div>
                   {r.proposed && (
                     <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8, fontSize: 11.5, color: "var(--fg-2)", cursor: "pointer" }}>

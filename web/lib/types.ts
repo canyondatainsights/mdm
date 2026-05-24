@@ -13,6 +13,7 @@ export interface Dimensions {
   data_platform: string[];
   financial_model: string[];
   domain: string[];
+  extension?: string[];
   products?: Record<string, string[]>;
 }
 
@@ -21,6 +22,7 @@ export interface ClassifySuggestion {
   data_platform: string | null;
   product: string | null;
   domain: string | null;
+  extension: string | null;
   proposed_subject: { value: string; label: string } | null;
   confidence: "high" | "medium" | "low";
   reasoning: string | null;

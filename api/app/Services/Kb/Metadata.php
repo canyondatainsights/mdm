@@ -61,12 +61,13 @@ class Metadata
             'scope' => $fm(['scope'], $scope),
             'product' => $fm(['product'], null),
             'product_version' => $fm(['version', 'product_version'], null),
+            'extension' => $fm(['extension'], null),
             'title' => $fm(['title'], null),
             'page_updated_at' => $fm(['updated', 'page_updated_at'], $body ? self::lastRevisionDate($body) : null),
         ];
 
         // Explicit overrides (upload form) take precedence over anything derived.
-        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'domain', 'scope', 'product', 'product_version', 'title'] as $k) {
+        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'domain', 'scope', 'product', 'product_version', 'extension', 'title'] as $k) {
             if (array_key_exists($k, $overrides) && ! in_array($overrides[$k], ['', null], true)) {
                 $meta[$k] = is_string($overrides[$k]) ? trim($overrides[$k]) : $overrides[$k];
             }
@@ -92,7 +93,7 @@ class Metadata
         }
 
         // Normalize empty strings / "null" to null.
-        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'product', 'product_version'] as $k) {
+        foreach (['mdm_vendor', 'data_platform', 'financial_model', 'product', 'product_version', 'extension'] as $k) {
             if (in_array($meta[$k], ['', 'null', 'none', null], true)) {
                 $meta[$k] = null;
             }
@@ -115,6 +116,12 @@ class Metadata
     private static function domainFromPath(string $relPath): string
     {
         $name = strtolower(basename($relPath));
+        // Vertical/extension docs (e.g. "customer360forinsurance", "supplier360extensionforsap",
+        // "mdmextensionformicrosoftfabric") are not a plain data-domain — don't infer one from a
+        // filename keyword; leave 'general' and let classification assign domain + extension.
+        if (preg_match('/(extensionfor|360for[a-z]|for(insurance|retail|healthcare|banking|lifesciences|esg|sap)\b)/', $name)) {
+            return 'general';
+        }
         foreach (self::DOMAIN_KEYWORDS as $kw => $domain) {
             if (str_contains($name, $kw)) {
                 return $domain;

@@ -93,6 +93,7 @@ class Ingestor
                 'scope' => $meta['scope'],
                 'product' => $meta['product'],
                 'product_version' => $meta['product_version'],
+                'extension' => $meta['extension'] ?? null,
                 // Held out of retrieval until a steward supplies vendor + product.
                 'needs_metadata' => empty($meta['mdm_vendor']) || empty($meta['product']),
                 'content_hash' => $hash,
@@ -146,6 +147,7 @@ class Ingestor
                     'scope' => $meta['scope'],
                     'product' => $meta['product'],
                     'product_version' => $meta['product_version'],
+                    'extension' => $meta['extension'] ?? null,
                     'embedding' => new Vector($vectors[$i]),
                 ]);
             }

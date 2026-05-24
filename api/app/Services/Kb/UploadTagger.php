@@ -21,6 +21,7 @@ class UploadTagger
         $vendor = $this->inList($tags['mdm_vendor'] ?? null, $dims['mdm_vendor']);
         $platform = $this->inList($tags['data_platform'] ?? null, $dims['data_platform']);
         $domain = $this->inList($tags['domain'] ?? null, $dims['domain']);
+        $extension = $this->inList($tags['extension'] ?? null, $dims['extension'] ?? []);
         $product = isset($tags['product']) ? Str::limit(trim((string) $tags['product']), 128, '') : null;
         $version = isset($tags['product_version']) ? Str::limit(trim((string) $tags['product_version']), 64, '') : null;
         $scope = in_array($tags['scope'] ?? null, ['vendor-specific', 'neutral'], true)
@@ -31,6 +32,7 @@ class UploadTagger
             'mdm_vendor' => $vendor,
             'data_platform' => $platform,
             'domain' => $domain,
+            'extension' => $extension,
             'scope' => $scope,
             'product' => $product ?: null,
             'product_version' => $version ?: null,
@@ -44,6 +46,7 @@ class UploadTagger
             'mdm_vendor' => $t['mdm_vendor'] ?? null,
             'data_platform' => $t['data_platform'] ?? null,
             'domain' => $t['domain'] ?? null,
+            'extension' => $t['extension'] ?? null,
             'product' => $t['product'] ?? null,
             'product_version' => $t['product_version'] ?? ($t['version'] ?? null),
             'scope' => $t['scope'] ?? null,

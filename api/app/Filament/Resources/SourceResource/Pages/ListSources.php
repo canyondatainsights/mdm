@@ -82,6 +82,9 @@ class ListSources extends ListRecords
                             Forms\Components\Select::make('domain')->label('Subject / domain')
                                 ->options($opts('domain'))
                                 ->disabled(fn (Get $get) => (bool) $get('apply_new')),
+                            Forms\Components\Select::make('extension')->label('Extension / vertical')
+                                ->options($opts('extension'))
+                                ->placeholder('Core (none)'),
                             Forms\Components\Select::make('scope')
                                 ->options(['vendor-specific' => 'Vendor-specific', 'neutral' => 'Neutral']),
                             Forms\Components\Toggle::make('apply_new')
@@ -146,6 +149,7 @@ class ListSources extends ListRecords
             'product' => $s['product'] ?? null,
             'product_version' => null,
             'domain' => $s['domain'] ?? null,
+            'extension' => $s['extension'] ?? null,
             'scope' => ($s['mdm_vendor'] ?? null) || ($s['data_platform'] ?? null) ? 'vendor-specific' : 'neutral',
             'new_subject_value' => $s['proposed_subject']['value'] ?? null,
             'new_subject_label' => $s['proposed_subject']['label'] ?? null,
@@ -179,6 +183,7 @@ class ListSources extends ListRecords
                 'product' => $it['product'] ?? null,
                 'product_version' => $it['product_version'] ?? null,
                 'domain' => $useNew ? $it['new_subject_value'] : ($it['domain'] ?? null),
+                'extension' => $it['extension'] ?? null,
                 'scope' => $it['scope'] ?? null,
             ]));
             $dir = $tagger->destDir($root, $overrides);
