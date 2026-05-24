@@ -41,6 +41,8 @@ class Source extends Model
                 'txt' => 'TXT',
                 default => strtoupper($ext) ?: 'DOC',
             };
+            // New uploads land pending — a steward approves them before they're used in answers.
+            $s->approved = false;
         }
         foreach (['mdm_vendor', 'data_platform', 'domain', 'scope', 'product', 'product_version'] as $k) {
             if (! empty($overrides[$k])) {

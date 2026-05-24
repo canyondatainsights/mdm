@@ -68,6 +68,10 @@ class Retriever
         $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.needs_metadata', false));
         $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.superseded', false));
 
+        // Approval gate: a source-backed chunk is eligible only once the source is approved.
+        // Wiki-page chunks (no source row) are unaffected.
+        $q->where(fn ($w) => $w->whereNull('sources.id')->orWhere('sources.approved', true));
+
         // Hard vendor / platform / financial-model isolation (qualified — joined tables share these names).
         $q->where(fn ($w) => $w->whereNull('chunks.mdm_vendor')->orWhere('chunks.mdm_vendor', $stack['mdm_vendor']));
         $q->where(fn ($w) => $w->whereNull('chunks.data_platform')->orWhere('chunks.data_platform', $stack['data_platform']));

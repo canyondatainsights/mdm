@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SourceResource\Pages;
 use App\Jobs\IngestUploadedFile;
+use App\Models\AuditLog;
 use App\Models\Chunk;
 use App\Models\Source;
 use Filament\Actions;
@@ -195,6 +196,33 @@ class SourceResource extends Resource
                         $record->delete();
                         Notification::make()->title('Source deleted')->success()->send();
                     }),
+            ])
+            ->toolbarActions([
+                Actions\BulkAction::make('approve')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalDescription('Approved sources become available to the assistant in answers.')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function ($records) {
+                        $records->each->update(['approved' => true]);
+                        AuditLog::record('source.approved', ['count' => $records->count(), 'paths' => $records->pluck('path')->all()]);
+                        Notification::make()->title('Approved '.$records->count().' source(s)')->success()->send();
+                    }),
+                Actions\BulkAction::make('unapprove')
+                    ->label('Unapprove')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription('Unapproved sources are immediately held out of answers.')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function ($records) {
+                        $records->each->update(['approved' => false]);
+                        AuditLog::record('source.unapproved', ['count' => $records->count(), 'paths' => $records->pluck('path')->all()]);
+                        Notification::make()->title('Unapproved '.$records->count().' source(s)')->warning()->send();
+                    }),
+                Actions\DeleteBulkAction::make(),
             ]);
     }
 
