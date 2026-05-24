@@ -64,3 +64,9 @@ button:not(:disabled), a, [role="button"] { cursor: pointer; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
 
 mark { background: oklch(0.93 0.12 95); color: inherit; padding: 1px 2px; border-radius: 2px; }
+
+/* highlight.js: keep token colors but drop the theme's own background/padding so our <pre> shows. */
+.hljs { background: transparent !important; padding: 0 !important; color: inherit; }
+
+/* Mermaid diagrams render full-width and centered within their container. */
+.mermaid-host svg { max-width: 100%; height: auto; }

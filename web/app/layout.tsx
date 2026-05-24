@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
+import "highlight.js/styles/github.css";
 
 const inter = Inter({
   subsets: ["latin"],

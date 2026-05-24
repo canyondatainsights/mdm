@@ -46,6 +46,9 @@ class WikiDrafter
         - Do NOT include YAML front-matter or a top-level "# H1" title — those are added automatically.
         - Open with a short intro paragraph, then organize with "## " section headings.
         - Use bullet lists and Markdown tables where they aid clarity.
+        - For processes, flows, architectures, lifecycles, or relationships, include a diagram as a
+          ```mermaid fenced code block (e.g. `flowchart TD`, `sequenceDiagram`) — these render as real
+          diagrams. Prefer Mermaid over ASCII art. Keep diagram labels short.
         - Be specific to the given vendor/platform/subject, but do not invent product features you are
           unsure of; prefer durable concepts over volatile version-specific claims.
         - Keep it focused and skimmable. Output ONLY the Markdown body.

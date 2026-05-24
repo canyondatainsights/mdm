@@ -2,9 +2,15 @@
 
 import { apiOrigin } from "@/lib/api";
 import { Fragment, type ReactNode } from "react";
+import { CodeBlock } from "./CodeBlock";
 
 /** Resolve a root-relative URL (e.g. an embedded /media/wiki image) against the API host. */
 const resolveUrl = (u: string) => (u.startsWith("/") ? apiOrigin + u : u);
+
+/** Stable anchor id for a heading (shared by the renderer and the wiki TOC). */
+export const headingSlug = (s: string) =>
+  s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`~#]/g, "").trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const isImageOnly = (l?: string) => !!l && /^\s*!\[[^\]]*\]\([^)]+\)\s*$/.test(l);
 
@@ -124,11 +130,7 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
         i++;
       }
       i++; // closing fence
-      out.push(
-        <pre key={key++} className="mono" style={{ margin: 0, padding: "12px 14px", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 8, overflowX: "auto", fontSize: 12.5, lineHeight: 1.5, color: "var(--fg-2)", whiteSpace: "pre" }}>
-          {code.join("\n")}
-        </pre>,
-      );
+      out.push(<CodeBlock key={key++} code={code.join("\n")} lang={fence[2] || undefined} />);
       continue;
     }
 
@@ -144,7 +146,7 @@ export function Markdown({ text, onCite }: { text: string; onCite?: (n: number) 
     if (h) {
       const s = HEADING[h[1].length] ?? HEADING[6];
       out.push(
-        <div key={key++} style={{ fontSize: s.size, fontWeight: s.weight, color: "var(--fg)", marginTop: s.mt, lineHeight: 1.3 }}>
+        <div key={key++} id={headingSlug(h[2])} style={{ fontSize: s.size, fontWeight: s.weight, color: "var(--fg)", marginTop: s.mt, lineHeight: 1.3, scrollMarginTop: 12 }}>
           {inline(h[2].replace(/\s+#*\s*$/, ""), onCite)}
         </div>,
       );

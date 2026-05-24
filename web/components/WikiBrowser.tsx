@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { Icon } from "@/lib/icons";
 import type { WikiPageDetail, WikiPageSummary } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
-import { Markdown } from "./Markdown";
+import { Markdown, headingSlug } from "./Markdown";
 import { RenderBoundary } from "./RenderBoundary";
 import { HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
 
@@ -42,6 +42,27 @@ export function WikiBrowser({ onToggleSidebar, sidebarCollapsed }: {
     return g;
   }, [pages, q]);
   const sections = Object.keys(groups).sort();
+
+  // "On this page" outline from the open page's h2/h3 headings (skipping fenced code).
+  const toc = useMemo(() => {
+    const out: { level: number; text: string; id: string }[] = [];
+    if (!sel?.body) return out;
+    let inFence = false;
+    for (const l of sel.body.split("\n")) {
+      if (/^\s*(```|~~~)/.test(l)) { inFence = !inFence; continue; }
+      if (inFence) continue;
+      const m = l.match(/^(#{2,3})\s+(.+)$/);
+      if (m) {
+        const text = m[2].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`~]/g, "").replace(/\s+#*\s*$/, "").trim();
+        out.push({ level: m[1].length, text, id: headingSlug(m[2]) });
+      }
+    }
+    return out;
+  }, [sel]);
+  const wide = !!sel && toc.length >= 3;
+
+  const scrollToHeading = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%", background: "var(--bg)" }}>
@@ -99,7 +120,7 @@ export function WikiBrowser({ onToggleSidebar, sidebarCollapsed }: {
 
         {/* reader */}
         <div style={{ flex: 1, overflowY: "auto", minWidth: 0, display: "flex", justifyContent: "center" }}>
-          <div style={{ width: "100%", maxWidth: 820, padding: "24px 28px 48px" }}>
+          <div style={{ width: "100%", maxWidth: wide ? 1060 : 820, padding: "24px 28px 48px", margin: "0 auto" }}>
             {!sel && !loading && (
               <div style={{ height: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--fg-4)", textAlign: "center" }}>
                 <Icon name="wiki" size={28} />
@@ -109,20 +130,34 @@ export function WikiBrowser({ onToggleSidebar, sidebarCollapsed }: {
             )}
             {loading && <div style={{ fontSize: 12.5, color: "var(--fg-4)" }}>Loading…</div>}
             {sel && !loading && (
-              <article>
-                <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--fg)", margin: "0 0 10px" }}>{sel.title}</h1>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid var(--border)" }}>
-                  {sel.mdm_vendor && <HierPill level={1} tone={vendorTone(sel.mdm_vendor, 1)} label={cap(sel.mdm_vendor)} />}
-                  {sel.data_platform && <HierPill level={1} tone={vendorTone(sel.data_platform, 1)} label={cap(sel.data_platform)} />}
-                  {sel.product && <HierPill level={2} tone={vendorTone(sel.mdm_vendor ?? sel.data_platform, 2)} label={`${sel.product}${sel.product_version ? ` ${sel.product_version}` : ""}`} />}
-                  {sel.domain && sel.domain !== "general" && <HierPill level={3} dot={false} tone={subjectTone(sel.domain, 2)} label={cap(sel.domain)} />}
-                  {sel.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}
-                  {sel.updated && <span style={{ fontSize: 11.5, color: "var(--fg-4)", marginLeft: "auto" }}>Updated {sel.updated}</span>}
-                </div>
-                <RenderBoundary fallback={<pre className="mono" style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.6, color: "var(--fg-2)" }}>{sel.body}</pre>}>
-                  <Markdown text={sel.body} />
-                </RenderBoundary>
-              </article>
+              <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
+                <article style={{ flex: 1, minWidth: 0 }}>
+                  <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--fg)", margin: "0 0 10px" }}>{sel.title}</h1>
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid var(--border)" }}>
+                    {sel.mdm_vendor && <HierPill level={1} tone={vendorTone(sel.mdm_vendor, 1)} label={cap(sel.mdm_vendor)} />}
+                    {sel.data_platform && <HierPill level={1} tone={vendorTone(sel.data_platform, 1)} label={cap(sel.data_platform)} />}
+                    {sel.product && <HierPill level={2} tone={vendorTone(sel.mdm_vendor ?? sel.data_platform, 2)} label={`${sel.product}${sel.product_version ? ` ${sel.product_version}` : ""}`} />}
+                    {sel.domain && sel.domain !== "general" && <HierPill level={3} dot={false} tone={subjectTone(sel.domain, 2)} label={cap(sel.domain)} />}
+                    {sel.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}
+                    {sel.updated && <span style={{ fontSize: 11.5, color: "var(--fg-4)", marginLeft: "auto" }}>Updated {sel.updated}</span>}
+                  </div>
+                  <RenderBoundary fallback={<pre className="mono" style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.6, color: "var(--fg-2)" }}>{sel.body}</pre>}>
+                    <Markdown text={sel.body} />
+                  </RenderBoundary>
+                </article>
+
+                {toc.length >= 3 && (
+                  <aside style={{ width: 188, flexShrink: 0, position: "sticky", top: 4, alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 3 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>On this page</div>
+                    {toc.map((t, n) => (
+                      <button key={`${t.id}-${n}`} onClick={() => scrollToHeading(t.id)} className="hov-link"
+                        style={{ textAlign: "left", background: "transparent", border: 0, padding: "2px 0", paddingLeft: (t.level - 2) * 10, fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {t.text}
+                      </button>
+                    ))}
+                  </aside>
+                )}
+              </div>
             )}
           </div>
         </div>
