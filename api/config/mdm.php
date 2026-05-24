@@ -64,7 +64,7 @@ return [
         'domain' => [
             'customer', 'product', 'vendor', 'supplier', 'finance', 'healthcare',
             // IDMC capability "subjects" (not data-domains, but lockable topics).
-            'data-governance', 'data-quality', 'data-profiling', 'parsing', 'address-verification',
+            'data-governance', 'data-quality', 'data-profiling', 'data-privacy', 'parsing', 'address-verification',
             'general',
         ],
     ],
