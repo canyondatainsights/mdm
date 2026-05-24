@@ -57,19 +57,23 @@ class AuditLogResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('summary')
+                    ->label('Event')
+                    ->state(fn (AuditLog $record) => $record->summary())
+                    ->wrap()
+                    ->weight('medium'),
                 Tables\Columns\TextColumn::make('action')
                     ->badge()
-                    ->searchable(),
+                    ->color(fn (string $state) => AuditLog::actionColor($state))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('User')
                     ->searchable()
                     ->placeholder('system'),
                 Tables\Columns\TextColumn::make('subject_type')
-                    ->limit(20),
-                Tables\Columns\TextColumn::make('subject_id'),
-                Tables\Columns\TextColumn::make('git_commit')
-                    ->label('Commit')
-                    ->limit(8)
+                    ->label('Subject')
+                    ->formatStateUsing(fn (?string $state, AuditLog $record) => $state ? class_basename($state).($record->subject_id ? " #{$record->subject_id}" : '') : null)
                     ->placeholder('—'),
             ])
             ->filters([
