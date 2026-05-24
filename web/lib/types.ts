@@ -28,7 +28,7 @@ export interface ClassifySuggestion {
 }
 
 export interface ClassifyResult {
-  files: { filename: string; suggestion: ClassifySuggestion }[];
+  files: { filename: string; suggestion: ClassifySuggestion; is_url?: boolean }[];
 }
 
 export interface Conversation {

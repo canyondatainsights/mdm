@@ -17,6 +17,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, 
 type Conf = "high" | "medium" | "low";
 type ReviewRow = {
   filename: string;
+  isUrl: boolean;
   mdm_vendor: string;
   data_platform: string;
   product: string;
@@ -74,28 +75,34 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
   const updateRow = (i: number, patch: Partial<ReviewRow>) =>
     setReviews((rs) => (rs ? rs.map((r, j) => (j === i ? { ...r, ...patch } : r)) : rs));
 
-  // Scan & classify the selected files (optional) — pre-fills per-file tags for review.
+  // Scan & classify the selected files and/or URL (optional) — pre-fills per-source tags for review.
   const scanAndClassify = async () => {
     const files = fileRef.current?.files;
-    if (!files || files.length === 0) { setMsg({ ok: false, text: "Add files to scan." }); return; }
+    const hasFiles = files && files.length > 0;
+    if (!hasFiles && !url.trim()) { setMsg({ ok: false, text: "Add files or a URL to scan." }); return; }
     setClassifying(true); setMsg(null);
     try {
       const form = new FormData();
-      Array.from(files).forEach((f) => form.append("files[]", f));
+      if (hasFiles) Array.from(files).forEach((f) => form.append("files[]", f));
+      if (url.trim()) form.append("url", url.trim());
       const r = await api.classifyUploads(form);
-      setReviews(r.files.map(({ filename, suggestion: s }) => ({
-        filename,
-        mdm_vendor: s.mdm_vendor ?? "",
-        data_platform: s.data_platform ?? "",
-        product: s.product ?? "",
-        product_version: "",
-        domain: s.domain ?? "",
-        scope: s.mdm_vendor || s.data_platform ? "vendor-specific" : "neutral",
-        confidence: s.confidence,
-        reasoning: s.error ? `Classify failed: ${s.error}` : s.reasoning,
-        proposed: s.proposed_subject,
-        applyNew: false,
-      })));
+      setReviews(r.files.map((row) => {
+        const s = row.suggestion;
+        return {
+          filename: row.filename,
+          isUrl: !!row.is_url,
+          mdm_vendor: s.mdm_vendor ?? "",
+          data_platform: s.data_platform ?? "",
+          product: s.product ?? "",
+          product_version: "",
+          domain: s.domain ?? "",
+          scope: s.mdm_vendor || s.data_platform ? "vendor-specific" : "neutral",
+          confidence: s.confidence,
+          reasoning: s.error ? `Classify failed: ${s.error}` : s.reasoning,
+          proposed: s.proposed_subject,
+          applyNew: false,
+        };
+      }));
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message });
     } finally {
@@ -122,7 +129,8 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
       if (domain) form.append("domain", domain);
       if (scope) form.append("scope", scope);
 
-      // Per-file tags from the review step (override globals; approve proposed new subjects).
+      // Per-source tags from the review step (override globals; approve proposed new subjects).
+      // File rows go in `meta` (keyed by filename); the URL row goes in `url_meta`.
       if (reviews && reviews.length) {
         const meta: Record<string, Record<string, unknown>> = {};
         for (const r of reviews) {
@@ -135,9 +143,10 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
             scope: r.scope || null,
           };
           if (r.applyNew && r.proposed) tags.new_subject = r.proposed;
-          meta[r.filename] = tags;
+          if (r.isUrl) form.append("url_meta", JSON.stringify(tags));
+          else meta[r.filename] = tags;
         }
-        form.append("meta", JSON.stringify(meta));
+        if (Object.keys(meta).length) form.append("meta", JSON.stringify(meta));
       }
 
       const r = await api.upload(form);

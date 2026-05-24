@@ -5,13 +5,12 @@ namespace App\Jobs;
 use App\Models\AuditLog;
 use App\Models\Source;
 use App\Services\Kb\Ingestor;
+use App\Services\Kb\UrlFetcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 /**
  * Fetches a user-submitted reference URL, extracts readable text into a tagged
@@ -35,25 +34,19 @@ class IngestUrlSource implements ShouldQueue
         public ?int $uploadedBy = null,
     ) {}
 
-    public function handle(Ingestor $ingestor): void
+    public function handle(Ingestor $ingestor, UrlFetcher $fetcher): void
     {
         Source::where('path', $this->targetRel)->update(['ingest_status' => 'processing']);
 
         try {
-            $response = Http::timeout(30)
-                ->withHeaders(['User-Agent' => 'MDM-KnowledgeHub/1.0 (+reference ingestion)'])
-                ->get($this->url);
-
-            if (! $response->successful()) {
+            try {
+                ['title' => $title, 'text' => $text] = $fetcher->fetch($this->url);
+            } catch (\Throwable $e) {
                 Source::where('path', $this->targetRel)->update(['ingest_status' => 'failed']);
-                AuditLog::record('source.url_failed', ['url' => $this->url, 'status' => $response->status()]);
+                AuditLog::record('source.url_failed', ['url' => $this->url, 'error' => $e->getMessage()]);
 
                 return;
             }
-
-            $html = $response->body();
-            $title = $this->extractTitle($html) ?? (parse_url($this->url, PHP_URL_HOST) ?: 'Reference');
-            $text = $this->htmlToText($html);
 
             $abs = rtrim($this->root, '/').'/'.$this->targetRel;
             @mkdir(dirname($abs), 0775, true);
@@ -99,29 +92,5 @@ class IngestUrlSource implements ShouldQueue
         $front .= "---\n\n";
 
         return $front."# {$title}\n\nSource: {$this->url}\n\n".$text."\n";
-    }
-
-    private function extractTitle(string $html): ?string
-    {
-        if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) {
-            $t = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-
-            return $t !== '' ? $t : null;
-        }
-
-        return null;
-    }
-
-    private function htmlToText(string $html): string
-    {
-        // Drop non-content blocks entirely.
-        $html = preg_replace('#<(script|style|head|noscript|svg|nav|footer)\b[^>]*>.*?</\1>#is', ' ', $html) ?? $html;
-        // Preserve block boundaries as newlines.
-        $html = preg_replace('#</(p|div|li|h[1-6]|tr|section|article|br)\s*>#i', "\n", $html) ?? $html;
-        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = preg_replace('/[ \t]+/', ' ', $text) ?? $text;
-        $text = preg_replace("/\n\s*\n\s*\n+/", "\n\n", $text) ?? $text;
-
-        return trim($text);
     }
 }
