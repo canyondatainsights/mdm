@@ -3,7 +3,7 @@
 import { api, streamMessage } from "@/lib/api";
 import { Icon } from "@/lib/icons";
 import type { Citation, Conversation, Message } from "@/lib/types";
-import { useEffect, useRef, useState } from "react";
+import { Component, type ReactNode, useEffect, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
 import { DocTypeBadge, IconButton, Pill } from "./ui";
 
@@ -14,6 +14,18 @@ const hasTable = (t: string) => {
   const ls = t.split("\n");
   return ls.some((l, i) => l.includes("|") && /^[\s|:-]*-[\s|:-]*$/.test(ls[i + 1] ?? ""));
 };
+
+/** Catches render exceptions in one message so a bad parse can't take down the whole app. */
+class RenderBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { /* swallow — fallback renders the raw text */ }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+const plainText = (t: string) => (
+  <div style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6, color: "var(--fg-2)" }}>{t}</div>
+);
 
 async function downloadXlsx(messageId: number) {
   const blob = await api.exportXlsx(messageId);
@@ -98,7 +110,13 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
           <span style={{ fontSize: 13, fontWeight: 600 }}>MDM Assistant</span>
           {confidence && <Pill tone={confidence === "high" ? "ok" : confidence === "low" ? "warn" : "neutral"} size="xs" icon={confidence === "high" ? "check" : undefined}>{cap(confidence)} confidence</Pill>}
         </div>
-        {text ? <Markdown text={text} onCite={citeByN} /> : (
+        {text ? (
+          // While streaming, render cheap plain text (re-parsing a growing Markdown
+          // table on every token can freeze the tab). Full Markdown once complete.
+          streaming
+            ? plainText(text)
+            : <RenderBoundary fallback={plainText(text)}><Markdown text={text} onCite={citeByN} /></RenderBoundary>
+        ) : (
           <div style={{ display: "flex", gap: 4, padding: "4px 0" }}>
             {[0, 1, 2].map((i) => <span key={i} className="typing-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--fg-4)" }} />)}
           </div>

@@ -59,17 +59,32 @@ class ChatService
 
         // Prior turns give the model memory (so "expand your previous answer" works). The
         // current turn carries the freshly-retrieved context; history is plain text.
-        $history = Message::where('conversation_id', $conversation->id)
+        $prior = Message::where('conversation_id', $conversation->id)
             ->where('id', '<', $userMsg->id)
             ->orderBy('id')
             ->get()
+            ->map(fn (Message $m) => ['role' => $m->role, 'text' => $this->messageText($m)])
+            ->filter(fn ($r) => $r['text'] !== '')
             ->slice(-(int) config('mdm.chat.history_turns', 10))
-            ->map(fn (Message $m) => $m->role === 'assistant'
-                ? new AssistantMessage($this->messageText($m))
-                : new UserMessage($this->messageText($m)))
-            ->filter(fn ($m) => $m->content !== '')
-            ->values()
-            ->all();
+            ->values();
+
+        // Anthropic requires strict user/assistant alternation, starting with user.
+        // Build a clean history and drop a dangling trailing user turn (one that never got a reply).
+        $history = [];
+        $last = null;
+        foreach ($prior as $r) {
+            if ($history === [] && $r['role'] !== 'user') {
+                continue;
+            }
+            if ($r['role'] === $last) {
+                continue;
+            }
+            $history[] = $r['role'] === 'assistant' ? new AssistantMessage($r['text']) : new UserMessage($r['text']);
+            $last = $r['role'];
+        }
+        if ($last === 'user') {
+            array_pop($history);
+        }
 
         $messages = [...$history, new UserMessage($prompt)];
 
