@@ -5,6 +5,7 @@ import { Icon } from "@/lib/icons";
 import type { WikiPageDetail, WikiPageSummary } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
 import { Markdown } from "./Markdown";
+import { RenderBoundary } from "./RenderBoundary";
 import { HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
@@ -118,7 +119,9 @@ export function WikiBrowser({ onToggleSidebar, sidebarCollapsed }: {
                   {sel.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}
                   {sel.updated && <span style={{ fontSize: 11.5, color: "var(--fg-4)", marginLeft: "auto" }}>Updated {sel.updated}</span>}
                 </div>
-                <Markdown text={sel.body} />
+                <RenderBoundary fallback={<pre className="mono" style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.6, color: "var(--fg-2)" }}>{sel.body}</pre>}>
+                  <Markdown text={sel.body} />
+                </RenderBoundary>
               </article>
             )}
           </div>
