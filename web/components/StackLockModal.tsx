@@ -17,6 +17,7 @@ export function StackLockModal({
   const [platform, setPlatform] = useState("databricks");
   const [financial, setFinancial] = useState("");
   const [domains, setDomains] = useState<string[]>(["customer"]);
+  const [extensions, setExtensions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -26,6 +27,8 @@ export function StackLockModal({
 
   const toggleDomain = (d: string) =>
     setDomains((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+  const toggleExtension = (e: string) =>
+    setExtensions((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
 
   const create = async () => {
     setBusy(true);
@@ -36,6 +39,7 @@ export function StackLockModal({
         data_platform: platform,
         financial_model: financial || null,
         domains: domains.length ? domains : ["general"],
+        extensions: extensions.length ? extensions : null,
       } as Partial<Conversation>);
       onCreated(c);
     } catch (e) {
@@ -98,6 +102,14 @@ export function StackLockModal({
             <Chip key={d} active={domains.includes(d)} onClick={() => toggleDomain(d)}>{cap(d)}</Chip>
           ))}
       </Group>
+
+      {(dims?.extension?.length ?? 0) > 0 && (
+        <Group label="Extensions — verticals & add-ons (optional)">
+          {(dims?.extension ?? []).map((e) => (
+            <Chip key={e} active={extensions.includes(e)} onClick={() => toggleExtension(e)}>{cap(e)}</Chip>
+          ))}
+        </Group>
+      )}
 
       {err && <div style={{ color: "var(--danger)", fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
 
