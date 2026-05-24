@@ -100,6 +100,8 @@ export const api = {
 
   // stewardship
   stewardship: () => req<StewardshipTask[]>("/stewardship/tasks"),
+  requestCrawl: (url: string, note?: string) =>
+    req<{ ok: boolean; task_id: number }>("/stewardship/requests", { method: "POST", body: JSON.stringify({ url, note }) }),
   approveTask: (id: number) => req<{ ok: boolean }>(`/stewardship/tasks/${id}/approve`, { method: "POST" }),
   rejectTask: (id: number) => req<{ ok: boolean }>(`/stewardship/tasks/${id}/reject`, { method: "POST" }),
 };

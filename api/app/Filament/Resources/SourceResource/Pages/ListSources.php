@@ -57,7 +57,7 @@ class ListSources extends ListRecords
                         ->live(onBlur: true)
                         ->afterStateUpdated(fn ($state, Get $get, Set $set) => $this->onUrlChanged($state, $get, $set))
                         ->placeholder('https://docs.informatica.com/…')
-                        ->helperText('The page is fetched, classified, and ingested like a document.')
+                        ->helperText('Fetches only this single page (not the whole site). To crawl an entire site, use Knowledge Base → Crawlers.')
                         ->columnSpanFull(),
                     Forms\Components\Repeater::make('items')
                         ->label('Suggested tags')

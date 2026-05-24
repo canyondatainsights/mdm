@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/exports/xlsx', [ExportController::class, 'xlsx']);
 
     Route::get('/stewardship/tasks', [StewardshipController::class, 'index']);
+    Route::post('/stewardship/requests', [StewardshipController::class, 'request']);
     Route::post('/stewardship/tasks/{task}/approve', [StewardshipController::class, 'approve']);
     Route::post('/stewardship/tasks/{task}/reject', [StewardshipController::class, 'reject']);
 

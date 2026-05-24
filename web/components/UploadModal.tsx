@@ -43,6 +43,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
   const [domain, setDomain] = useState("");
   const [scope, setScope] = useState("vendor-specific");
   const [url, setUrl] = useState("");
+  const [crawlReq, setCrawlReq] = useState<"idle" | "sending" | "done">("idle");
   const [busy, setBusy] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const [reviews, setReviews] = useState<ReviewRow[] | null>(null);
@@ -112,6 +113,13 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
     } finally {
       setClassifying(false);
     }
+  };
+
+  const requestSiteCrawl = async () => {
+    if (!url.trim() || crawlReq === "sending") return;
+    setCrawlReq("sending");
+    try { await api.requestCrawl(url.trim()); setCrawlReq("done"); }
+    catch (e) { setCrawlReq("idle"); setMsg({ ok: false, text: (e as Error).message }); }
   };
 
   const submit = async () => {
@@ -195,11 +203,26 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
       <input
         type="url"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => { setUrl(e.target.value); setCrawlReq("idle"); }}
         placeholder="https://docs.informatica.com/…"
         className="mono"
-        style={{ ...fieldStyle, marginBottom: 14 }}
+        style={{ ...fieldStyle, marginBottom: url.trim() ? 6 : 14 }}
       />
+      {url.trim() && (
+        <div style={{ marginBottom: 14, padding: "8px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, fontSize: 11.5, color: "var(--fg-2)", lineHeight: 1.5 }}>
+          A URL ingests <strong>only that single page</strong> — it does not crawl the rest of the site.{" "}
+          {crawlReq === "done" ? (
+            <span style={{ color: "var(--ok)", fontWeight: 500 }}>✓ Crawl requested — a steward will review it.</span>
+          ) : (
+            <>Need the whole site?{" "}
+              <button type="button" onClick={requestSiteCrawl} disabled={crawlReq === "sending"} className="hov-link"
+                style={{ background: "none", border: 0, padding: 0, color: "var(--accent-2)", fontWeight: 600, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}>
+                {crawlReq === "sending" ? "Requesting…" : "Request a full-site crawl"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <details style={{ marginBottom: 12 }}>
         <summary style={{ ...labelStyle, marginBottom: 0, cursor: "pointer" }}>
