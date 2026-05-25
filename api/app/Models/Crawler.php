@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Crawler extends Model
 {
-    protected $fillable = ['key', 'name', 'platform', 'sitemaps', 'exclude', 'sections', 'active', 'schedule', 'last_run_at', 'sort_order', 'notes'];
+    protected $fillable = ['key', 'name', 'platform', 'scope', 'sitemaps', 'exclude', 'sections', 'active', 'schedule', 'last_run_at', 'sort_order', 'notes'];
 
     protected $casts = [
         'sitemaps' => 'array',
@@ -39,11 +39,12 @@ class Crawler extends Model
         });
     }
 
-    /** @return array{platform:string, sitemaps:array, exclude:array, sections:array} */
+    /** @return array{platform:?string, scope:string, sitemaps:array, exclude:array, sections:array} */
     public function toProfile(): array
     {
         return [
             'platform' => $this->platform,
+            'scope' => $this->scope ?: 'vendor-specific',
             'sitemaps' => $this->sitemaps ?? [],
             'exclude' => $this->exclude ?? [],
             'sections' => $this->sections ?? [],

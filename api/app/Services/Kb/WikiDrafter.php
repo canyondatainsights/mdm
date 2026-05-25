@@ -69,6 +69,7 @@ class WikiDrafter
 
         $resp = Prism::text()
             ->using(Provider::Anthropic, $this->settings->anthropicModel(), ['api_key' => $key])
+            ->withClientOptions(['timeout' => 120]) // a full-page generation can exceed the 30s default
             ->withMaxTokens(filled($sourceText) ? 3000 : 2200)
             ->withSystemPrompt($system)
             ->withPrompt($prompt)

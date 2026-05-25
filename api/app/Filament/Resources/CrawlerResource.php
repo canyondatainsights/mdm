@@ -41,7 +41,12 @@ class CrawlerResource extends Resource
                 ->helperText('Stable profile key, e.g. databricks, snowflake, oracle-docs.'),
             Forms\Components\TextInput::make('name')->required()->maxLength(128),
             Forms\Components\Select::make('platform')->options($opts('data_platform'))->searchable()
-                ->helperText('Crawled pages are tagged data_platform=this (vendor-neutral re: MDM tool).'),
+                ->helperText('Optional. Set for a platform crawler (tags data_platform=this). Leave blank for a topic/subject crawler — the section domain + scope below drive tagging.'),
+            Forms\Components\Select::make('scope')
+                ->options(['vendor-specific' => 'Vendor-specific', 'neutral' => 'Neutral (shared across stacks)'])
+                ->default('vendor-specific')
+                ->required()
+                ->helperText('Neutral = a subject like data-privacy that surfaces in any conversation; vendor-specific = isolated to the platform.'),
             Forms\Components\TagsInput::make('sitemaps')->required()
                 ->placeholder('https://docs.example.com/sitemap.xml')
                 ->helperText('One or more sitemap URLs.')->columnSpanFull(),

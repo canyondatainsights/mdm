@@ -28,7 +28,10 @@ class CrawlerService
         $sleep = max(0, (int) ($opts['sleep'] ?? 0));
         $dryRun = (bool) ($opts['dryRun'] ?? false);
 
-        $platform = $profile['platform'] ?? $key;
+        // Platform-specific crawlers tag data_platform=<platform>; topic crawlers (e.g. data-privacy)
+        // leave platform null and tag a neutral subject via the section domain + profile scope.
+        $platform = $profile['platform'] ?? null;
+        $scope = $profile['scope'] ?? 'vendor-specific';
         $sections = $this->normalizeSections($profile['sections'] ?? []);
         $exclude = $profile['exclude'] ?? [];
 
@@ -94,7 +97,7 @@ class CrawlerService
                 'data_platform' => $platform,
                 'product' => $m['product'],
                 'domain' => $m['domain'],
-                'scope' => 'vendor-specific',
+                'scope' => $scope,
             ]);
             $dir = $this->tagger->destDir($root, $overrides, $key);
             $slug = Str::slug(trim((string) parse_url($url, PHP_URL_PATH), '/')) ?: ('p-'.substr(md5($url), 0, 10));
