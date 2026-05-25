@@ -29,6 +29,7 @@ export default function Home() {
   const [modal, setModal] = useState<null | "stacklock" | "browse" | "upload">(null);
   const [browseView, setBrowseView] = useState("sources");
   const [navView, setNavView] = useState("chat");
+  const [shareTarget, setShareTarget] = useState<Conversation | null>(null);
 
   // boot: restore session
   useEffect(() => {
@@ -54,6 +55,18 @@ export default function Home() {
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (active?.id === id) { setActive(null); setMessages([]); }
   }, [active]);
+
+  const renameConversation = useCallback(async (id: number, title: string) => {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
+    setActive((a) => (a?.id === id ? { ...a, title } : a));
+    try { await api.updateConversation(id, { title }); } catch { /* ignore */ }
+  }, []);
+
+  const togglePin = useCallback(async (id: number, pinned: boolean) => {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned } : c)));
+    try { await api.updateConversation(id, { pinned }); } catch { /* ignore */ }
+    refreshConversations();
+  }, [refreshConversations]);
 
   const onCreated = (c: Conversation) => {
     setModal(null);
@@ -109,6 +122,9 @@ export default function Home() {
           onLogout={logout}
           view={navView}
           onDelete={removeConversation}
+          onRename={renameConversation}
+          onTogglePin={togglePin}
+          onShare={setShareTarget}
         />
       )}
 

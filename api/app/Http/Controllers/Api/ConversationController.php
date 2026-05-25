@@ -49,6 +49,20 @@ class ConversationController extends Controller
         return response()->json($this->summary($conversation), 201);
     }
 
+    /** Rename and/or (un)pin a conversation. */
+    public function update(Request $request, Conversation $conversation)
+    {
+        $this->authorizeOwner($request, $conversation);
+
+        $data = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'pinned' => ['sometimes', 'boolean'],
+        ]);
+        $conversation->update($data);
+
+        return $this->summary($conversation);
+    }
+
     public function show(Request $request, Conversation $conversation)
     {
         $this->authorizeOwner($request, $conversation);

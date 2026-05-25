@@ -19,17 +19,81 @@ const NAV = [
 ] as const;
 
 export function Sidebar({
-  user, conversations, activeId, onSelect, onNew, onNav, onLogout, view, onDelete,
+  user, conversations, activeId, onSelect, onNew, onNav, onLogout, view, onDelete, onRename, onTogglePin, onShare,
 }: {
   user: User; conversations: Conversation[]; activeId: number | null;
   onSelect: (id: number) => void; onNew: () => void; onNav: (key: string) => void;
   onLogout: () => void; view: string; onDelete: (id: number) => void;
+  onRename: (id: number, title: string) => void;
+  onTogglePin: (id: number, pinned: boolean) => void;
+  onShare: (c: Conversation) => void;
 }) {
   const [q, setQ] = useState("");
   const [hovered, setHovered] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const filtered = conversations.filter((c) => c.title.toLowerCase().includes(q.toLowerCase()));
+  const pinned = filtered.filter((c) => c.pinned);
+  const recent = filtered.filter((c) => !c.pinned);
   const initials = user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  const commitRename = (c: Conversation) => {
+    const t = editTitle.trim();
+    if (t && t !== c.title) onRename(c.id, t);
+    setEditingId(null);
+  };
+
+  const renderRow = (c: Conversation) => {
+    const vt = vendorTone(c.mdm_vendor, 1);
+    const subj = (c.domains ?? []).filter((d) => d !== "general")[0];
+    const active = c.id === activeId;
+    const showActions = hovered === c.id || active;
+    const editing = editingId === c.id;
+    return (
+      <div key={c.id} onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered((h) => (h === c.id ? null : h))}
+        style={{ position: "relative", marginBottom: 1 }}>
+        <button onClick={() => onSelect(c.id)} className="hov-row"
+          style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 14px", borderRadius: 7,
+            background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
+          <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? vt.fg : vt.border }} />
+          {editing ? (
+            <input autoFocus value={editTitle} onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={() => commitRename(c)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitRename(c); if (e.key === "Escape") setEditingId(null); }}
+              style={{ width: "100%", marginBottom: 3, fontSize: 13, padding: "1px 4px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg)", color: "var(--fg)", outline: "none" }} />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3, paddingRight: showActions ? 4 : 0 }}>
+              {c.pinned && <Icon name="pin" size={11} style={{ color: vt.fg, flexShrink: 0 }} />}
+              <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+            {c.mdm_vendor && <HierPill level={1} tone={vt} label={cap(c.mdm_vendor)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
+            {c.data_platform && <HierPill level={1} tone={vendorTone(c.data_platform, 1)} label={cap(c.data_platform)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
+            {subj && <HierPill level={3} dot={false} tone={subjectTone(subj, 2)} label={cap(subj)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
+          </div>
+        </button>
+        {showActions && !editing && (
+          <div style={{ position: "absolute", right: 5, top: 5, display: "flex", gap: 1, padding: 1, borderRadius: 6, background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+            {[
+              { icon: c.pinned ? "pin-off" : "pin", label: c.pinned ? "Unpin" : "Pin", fn: () => onTogglePin(c.id, !c.pinned) },
+              { icon: "edit", label: "Rename", fn: () => { setEditingId(c.id); setEditTitle(c.title); } },
+              { icon: "share", label: "Share", fn: () => onShare(c) },
+              { icon: "close", label: "Delete", fn: () => setPendingDelete(c) },
+            ].map((a) => (
+              <button key={a.label} title={a.label} aria-label={a.label} className="hov-icon"
+                onClick={(e) => { e.stopPropagation(); a.fn(); }}
+                style={{ width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: 0, background: "transparent", color: "var(--fg-4)" }}>
+                <Icon name={a.icon} size={12} />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <aside style={{ width: 280, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--bg-2)", display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
@@ -88,38 +152,19 @@ export function Sidebar({
 
         {/* conversations */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 8px 12px", minHeight: 0 }}>
-          <div style={{ padding: "6px 10px 4px", fontSize: 10.5, fontWeight: 600, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recent</div>
           {filtered.length === 0 && <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--fg-4)" }}>No conversations yet.</div>}
-          {filtered.map((c) => {
-            const vt = vendorTone(c.mdm_vendor, 1);
-            const subj = (c.domains ?? []).filter((d) => d !== "general")[0];
-            const active = c.id === activeId;
-            const showClose = hovered === c.id || active;
-            return (
-              <div key={c.id} onMouseEnter={() => setHovered(c.id)} onMouseLeave={() => setHovered((h) => (h === c.id ? null : h))}
-                style={{ position: "relative", marginBottom: 1 }}>
-                <button onClick={() => onSelect(c.id)} className="hov-row"
-                  style={{ position: "relative", width: "100%", display: "block", textAlign: "left", padding: "8px 30px 8px 14px", borderRadius: 7,
-                    background: active ? "var(--panel)" : "transparent", border: active ? "1px solid var(--border)" : "1px solid transparent", boxShadow: active ? "var(--shadow-sm)" : "none" }}>
-                  <span style={{ position: "absolute", left: 5, top: 10, bottom: 10, width: 3, borderRadius: 2, background: active ? vt.fg : vt.border }} />
-                  <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>{c.title}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                    {c.mdm_vendor && <HierPill level={1} tone={vt} label={cap(c.mdm_vendor)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
-                    {c.data_platform && <HierPill level={1} tone={vendorTone(c.data_platform, 1)} label={cap(c.data_platform)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
-                    {subj && <HierPill level={3} dot={false} tone={subjectTone(subj, 2)} label={cap(subj)} style={{ fontSize: 9.5, padding: "1px 6px" }} />}
-                  </div>
-                </button>
-                {showClose && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setPendingDelete(c); }}
-                    title="Delete conversation" aria-label="Delete conversation" className="hov-icon"
-                    style={{ position: "absolute", right: 6, top: 7, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 5, border: 0, background: "transparent", color: "var(--fg-4)" }}>
-                    <Icon name="close" size={13} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {pinned.length > 0 && (
+            <>
+              <div style={{ padding: "6px 10px 4px", fontSize: 10.5, fontWeight: 600, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Pinned</div>
+              {pinned.map(renderRow)}
+            </>
+          )}
+          {recent.length > 0 && (
+            <>
+              <div style={{ padding: pinned.length ? "10px 10px 4px" : "6px 10px 4px", fontSize: 10.5, fontWeight: 600, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recent</div>
+              {recent.map(renderRow)}
+            </>
+          )}
         </div>
 
         {/* user footer */}
