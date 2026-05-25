@@ -33,6 +33,18 @@ UI and a Filament admin back office.
 - **Excel export** — any answer containing tables gets a **Download Excel** button → a formatted,
   multi-tab `.xlsx` (one colored tab per target entity).
 
+### Conversations & research (web app)
+- **Auto-titled conversations** — each thread is titled from its first exchange (LLM, with a
+  question-based fallback), so the sidebar reads as real topics instead of "New conversation".
+- **Pin & rename** — pin important threads (grouped under **Pinned**) and rename them inline;
+  conversations are per-user.
+- **Research topics** — save topics for later deep-dives (title + notes + an optional locked stack),
+  scoped **Private** or **Shared ("group research")** so a team can collaborate. **Deep-dive**
+  launches a new conversation pre-locked to the topic's stack with the composer seeded.
+- **Share links** — opt-in, **revocable public** read-only links to a conversation, with
+  **Copy / Email / Teams** actions and a branded **Open Graph** preview image for nice Teams/email
+  unfurls. The shared transcript page is read-only and `noindex`.
+
 ### Wiki authoring (admin)
 - **Create & view wiki pages** directly in the admin — write Markdown, embed **images/diagrams**
   (stored in the versioned KB), and save to write → ingest → git-commit in one step.
@@ -178,5 +190,6 @@ index, so it is **not** suited to read-only serverless platforms.
 ## Documentation
 
 - KB operating contract: [`kb/MANIFEST.md`](kb/MANIFEST.md) · topic index: [`kb/_INDEX.md`](kb/_INDEX.md) · changes: [`kb/_CHANGELOG.md`](kb/_CHANGELOG.md)
-- API endpoints under `/api` (auth, conversations, messages SSE, sources, **wiki**, uploads,
-  exports, stewardship, settings, meta); the admin/governance UI is at `/admin`.
+- API endpoints under `/api` (auth, conversations [+ pin/rename/share], messages SSE, public
+  `share/{token}`, sources, **wiki**, **research-topics**, uploads, exports, stewardship, settings,
+  meta); the admin/governance UI is at `/admin`.
