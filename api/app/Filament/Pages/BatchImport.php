@@ -121,40 +121,49 @@ class BatchImport extends Page
         ];
     }
 
-    /** The latest batch's live progress, or null if none yet. */
-    public function latestBatch(): ?array
+    /** Batch-import log ids for the recent runs shown on the page (newest first). */
+    protected function recentBatchIds(int $limit = 8): array
     {
-        $log = AuditLog::where('action', 'batch.import')->latest('created_at')->first();
-        if (! $log) {
-            return null;
-        }
-        $id = $log->meta['batch_id'] ?? null;
-        $b = $id ? Bus::findBatch($id) : null;
-        $ingested = AuditLog::where('action', 'batch.ingested')->whereJsonContains('meta->batch_id', $id)->count();
-        $skipped = AuditLog::where('action', 'batch.skipped')->whereJsonContains('meta->batch_id', $id)->count();
-
-        return [
-            'id' => $id,
-            'created' => $log->created_at,
-            'total' => $b?->totalJobs ?? ($log->meta['count'] ?? 0),
-            'progress' => $b ? $b->progress() : 100,
-            'pending' => $b?->pendingJobs ?? 0,
-            'failed' => $b?->failedJobs ?? 0,
-            'finished' => $b ? $b->finished() : true,
-            'ingested' => $ingested,
-            'skipped' => $skipped,
-        ];
+        return AuditLog::where('action', 'batch.import')->latest('created_at')->limit($limit)->get()
+            ->pluck('meta.batch_id')->filter()->values()->all();
     }
 
-    /** Proposed (un-created) new subjects from the latest batch, deduped with counts + paths. */
+    /** Live progress for each recent batch (running ones first). */
+    public function recentBatches(): Collection
+    {
+        return AuditLog::where('action', 'batch.import')->latest('created_at')->limit(8)->get()
+            ->map(function ($log) {
+                $id = $log->meta['batch_id'] ?? null;
+                $b = $id ? Bus::findBatch($id) : null;
+
+                return [
+                    'id' => $id,
+                    'created' => $log->created_at,
+                    'total' => $b?->totalJobs ?? ($log->meta['count'] ?? 0),
+                    'progress' => $b ? $b->progress() : 100,
+                    'pending' => $b?->pendingJobs ?? 0,
+                    'failed' => $b?->failedJobs ?? 0,
+                    'finished' => $b ? $b->finished() : true,
+                    'ingested' => $id ? AuditLog::where('action', 'batch.ingested')->whereJsonContains('meta->batch_id', $id)->count() : 0,
+                    'skipped' => $id ? AuditLog::where('action', 'batch.skipped')->whereJsonContains('meta->batch_id', $id)->count() : 0,
+                ];
+            })
+            // Show unfinished (running) batches first, then most recent.
+            ->sortBy(fn ($x) => $x['finished'] ? 1 : 0)
+            ->values();
+    }
+
+    /** Proposed (un-created) new subjects across the recent batches, deduped with counts + paths. */
     public function proposedSubjects(): Collection
     {
-        $id = AuditLog::where('action', 'batch.import')->latest('created_at')->first()?->meta['batch_id'] ?? null;
-        if (! $id) {
+        $ids = $this->recentBatchIds();
+        if (empty($ids)) {
             return collect();
         }
 
-        return AuditLog::where('action', 'batch.proposed_subject')->whereJsonContains('meta->batch_id', $id)->get()
+        return AuditLog::where('action', 'batch.proposed_subject')
+            ->where(fn ($q) => array_map(fn ($id) => $q->orWhereJsonContains('meta->batch_id', $id), $ids))
+            ->get()
             ->groupBy(fn ($r) => $r->meta['value'])
             ->map(fn ($g) => [
                 'value' => $g->first()->meta['value'],

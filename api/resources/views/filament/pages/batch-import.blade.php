@@ -11,26 +11,37 @@
 
     {{-- Progress + review (auto-refreshes) --}}
     <div wire:poll.5s class="space-y-6">
-        @php($batch = $this->latestBatch())
-        @if ($batch)
+        @php($batches = $this->recentBatches())
+        @if ($batches->isNotEmpty())
             <x-filament::section icon="heroicon-o-chart-bar">
-                <x-slot name="heading">Latest batch</x-slot>
-                <x-slot name="description">Started {{ $batch['created']?->diffForHumans() }}.</x-slot>
+                <x-slot name="heading">Batches ({{ $batches->where('finished', false)->count() }} running)</x-slot>
+                <x-slot name="description">Running batches first, then most recent.</x-slot>
 
-                <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
-                    <x-filament::badge :color="$batch['finished'] ? 'success' : 'warning'">
-                        {{ $batch['finished'] ? 'finished' : 'running' }}
-                    </x-filament::badge>
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">
-                        {{ $batch['progress'] }}% ·
-                        {{ $batch['ingested'] }} ingested ·
-                        {{ $batch['skipped'] }} skipped (duplicates) ·
-                        {{ $batch['failed'] }} failed ·
-                        {{ $batch['pending'] }} pending / {{ $batch['total'] }} total
-                    </span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
-                    <div class="h-full rounded-full bg-primary-500 transition-all" style="width: {{ max(2, (int) $batch['progress']) }}%"></div>
+                <div class="space-y-4">
+                    @foreach ($batches as $batch)
+                        <div @class([
+                            'rounded-lg border p-3',
+                            'border-amber-300 dark:border-amber-500/40' => ! $batch['finished'],
+                            'border-gray-200 dark:border-white/10' => $batch['finished'],
+                        ])>
+                            <div class="mb-2 flex flex-wrap items-center gap-3 text-sm">
+                                <x-filament::badge :color="$batch['finished'] ? 'success' : 'warning'">
+                                    {{ $batch['finished'] ? 'finished' : 'running' }}
+                                </x-filament::badge>
+                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $batch['progress'] }}% ·
+                                    {{ $batch['ingested'] }} ingested ·
+                                    {{ $batch['skipped'] }} skipped (dupes) ·
+                                    {{ $batch['failed'] }} failed ·
+                                    {{ $batch['pending'] }} pending / {{ $batch['total'] }} total
+                                </span>
+                                <span class="ml-auto text-xs text-gray-400">{{ $batch['created']?->diffForHumans() }}</span>
+                            </div>
+                            <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                                <div class="h-full rounded-full bg-primary-500 transition-all" style="width: {{ max(2, (int) $batch['progress']) }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </x-filament::section>
         @endif
