@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\ResearchTopicController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SourceController;
 use App\Http\Controllers\Api\StewardshipController;
@@ -48,6 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stewardship/tasks/{task}/reject', [StewardshipController::class, 'reject']);
 
     Route::get('/meta/stats', [MetaController::class, 'stats']);
+
+    // Research topics (deep-dives; private or shared "group research")
+    Route::get('/research-topics', [ResearchTopicController::class, 'index']);
+    Route::post('/research-topics', [ResearchTopicController::class, 'store']);
+    Route::patch('/research-topics/{topic}', [ResearchTopicController::class, 'update']);
+    Route::delete('/research-topics/{topic}', [ResearchTopicController::class, 'destroy']);
+    Route::post('/research-topics/{topic}/deep-dive', [ResearchTopicController::class, 'deepDive']);
 
     // Admin
     Route::get('/settings', [SettingsController::class, 'show']);

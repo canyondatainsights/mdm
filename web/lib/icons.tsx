@@ -4,7 +4,7 @@ import {
   ArrowUp, BookMarked, BookOpen, Check, ChevronDown, ChevronRight, Copy, Database, Download,
   ExternalLink, FileText, SlidersHorizontal, Workflow, Globe, History, Link2,
   MoreHorizontal, Network, PanelLeft, PanelRight, Paperclip, Pencil, Pin, PinOff, Plus,
-  RotateCw, Search, Send, Settings, Share2, Shield, Sparkles, Square, Tag, ThumbsDown,
+  RotateCw, Search, Send, Settings, Share2, Shield, Sparkles, Square, Tag, Telescope, ThumbsDown,
   ThumbsUp, X, LogOut, type LucideIcon,
 } from "lucide-react";
 
@@ -17,7 +17,7 @@ const MAP: Record<string, LucideIcon> = {
   thumbsup: ThumbsUp, thumbsdown: ThumbsDown, refresh: RotateCw, filter: SlidersHorizontal,
   tag: Tag, shield: Shield, link: Link2, external: ExternalLink, database: Database,
   graph: Network, history: History, more: MoreHorizontal, "arrow-up": ArrowUp,
-  flow: Workflow, globe: Globe, settings: Settings, close: X, logout: LogOut,
+  flow: Workflow, globe: Globe, research: Telescope, settings: Settings, close: X, logout: LogOut,
   stop: Square, download: Download,
 };
 

@@ -137,12 +137,12 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
 
 export function ChatArea({
   conversation, initialMessages, onOpenSource, onToggleSidebar, sidebarCollapsed,
-  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach, onShare,
+  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach, onShare, seed,
 }: {
   conversation: Conversation | null; initialMessages: Message[];
   onOpenSource: (path: string) => void; onToggleSidebar: () => void; sidebarCollapsed: boolean;
   onToggleInspector: () => void; inspectorOpen: boolean; onChanged: () => void; onNeedKey: () => void; onNew: () => void;
-  onAttach?: () => void; onShare?: (c: Conversation) => void;
+  onAttach?: () => void; onShare?: (c: Conversation) => void; seed?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -153,6 +153,9 @@ export function ChatArea({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Prefill the composer when launched from a research-topic deep-dive.
+  useEffect(() => { if (seed) setInput(seed); }, [seed]);
 
   useEffect(() => {
     abortRef.current?.abort();   // cancel any in-flight stream when switching conversations

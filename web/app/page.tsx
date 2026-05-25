@@ -7,6 +7,7 @@ import { BrowseModal } from "@/components/BrowseModal";
 import { ChatArea } from "@/components/ChatArea";
 import { Inspector } from "@/components/Inspector";
 import { Login } from "@/components/Login";
+import { ResearchModal } from "@/components/ResearchModal";
 import { ShareModal } from "@/components/ShareModal";
 import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
@@ -27,10 +28,11 @@ export default function Home() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [openSource, setOpenSource] = useState<string | null>(null);
 
-  const [modal, setModal] = useState<null | "stacklock" | "browse" | "upload">(null);
+  const [modal, setModal] = useState<null | "stacklock" | "browse" | "upload" | "research">(null);
   const [browseView, setBrowseView] = useState("sources");
   const [navView, setNavView] = useState("chat");
   const [shareTarget, setShareTarget] = useState<Conversation | null>(null);
+  const [seedInput, setSeedInput] = useState<string | null>(null);
 
   // boot: restore session
   useEffect(() => {
@@ -81,10 +83,18 @@ export default function Home() {
     if (key === "chat") { setNavView("chat"); return; }
     // Wiki browsing takes over the main viewer (roomy reader); other panels open in the modal.
     if (key === "wiki") { setNavView("wiki"); return; }
+    if (key === "research") { setModal("research"); return; }
     setBrowseView(key);
     setNavView(key);
     setModal("browse");
   };
+
+  const deepDive = useCallback(async (conversationId: number, seed: string) => {
+    setModal(null);
+    setSeedInput(seed);
+    await selectConversation(conversationId);
+    refreshConversations();
+  }, [selectConversation, refreshConversations]);
 
   const openSourceInInspector = (path: string) => {
     setOpenSource(path);
@@ -148,6 +158,7 @@ export default function Home() {
           onNew={() => setModal("stacklock")}
           onAttach={openUpload}
           onShare={setShareTarget}
+          seed={seedInput ?? undefined}
         />
       )}
 
@@ -158,6 +169,7 @@ export default function Home() {
         <BrowseModal view={browseView} user={user} onClose={() => { setModal(null); setNavView("chat"); }} onOpenSource={openSourceInInspector} onOpenUpload={openUpload} />
       )}
       {modal === "upload" && <UploadModal onClose={() => setModal(null)} />}
+      {modal === "research" && <ResearchModal user={user} activeConversation={active} onClose={() => setModal(null)} onDeepDive={deepDive} />}
       {shareTarget && <ShareModal conversation={shareTarget} onClose={() => setShareTarget(null)} onChanged={refreshConversations} />}
     </div>
   );

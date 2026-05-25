@@ -143,6 +143,21 @@ export interface WikiPageDetail extends WikiPageSummary {
   financial_model: string | null;
 }
 
+export interface ResearchTopic {
+  id: number;
+  title: string;
+  notes: string | null;
+  scope: "private" | "shared";
+  mdm_vendor: string | null;
+  data_platform: string | null;
+  financial_model: string | null;
+  domains: string[] | null;
+  extensions: string[] | null;
+  owned: boolean;
+  owner: string | null;
+  created_at: string;
+}
+
 export interface SettingsInfo {
   anthropic: { has_key: boolean; hint: string | null; source: string | null; model: string };
   embeddings: { driver: string; dim: number };

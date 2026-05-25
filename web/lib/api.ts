@@ -112,6 +112,16 @@ export const api = {
       body: JSON.stringify(anthropic_api_key ? { anthropic_api_key } : {}),
     }),
 
+  // research topics
+  researchTopics: () => req<import("./types").ResearchTopic[]>("/research-topics"),
+  createResearchTopic: (body: Partial<import("./types").ResearchTopic>) =>
+    req<import("./types").ResearchTopic>("/research-topics", { method: "POST", body: JSON.stringify(body) }),
+  updateResearchTopic: (id: number, body: Partial<import("./types").ResearchTopic>) =>
+    req<import("./types").ResearchTopic>(`/research-topics/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteResearchTopic: (id: number) => req(`/research-topics/${id}`, { method: "DELETE" }),
+  deepDiveTopic: (id: number) =>
+    req<{ conversation_id: number; seed: string }>(`/research-topics/${id}/deep-dive`, { method: "POST" }),
+
   // stewardship
   stewardship: () => req<StewardshipTask[]>("/stewardship/tasks"),
   requestCrawl: (url: string, note?: string) =>
