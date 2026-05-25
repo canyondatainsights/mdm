@@ -34,7 +34,7 @@ return new class extends Migration
                 'name' => 'California CPPA (CCPA/CPRA)',
                 'sitemaps' => ['https://cppa.ca.gov/sitemap.xml'],
                 'exclude' => ['?', '.pdf', '.docx', '.zip', '/pdf/', '/meetings', '/events', '/press', '/news', '/careers', '/announcements', '/board'],
-                'sections' => [['section' => 'ccpa', 'product' => null, 'domain' => 'data-privacy', 'match' => ['/']]],
+                'sections' => [['section' => 'ccpa', 'product' => null, 'domain' => 'data-privacy', 'match' => ['regulations', 'data_broker', 'enforcement', 'rulemaking', 'consumer_privacy']]],
             ],
         ];
 
