@@ -84,10 +84,40 @@ class DocumentParser
         return [
             'body' => $text,
             'front_matter' => [],
-            'title' => $this->basenameTitle($absPath),
+            // Prefer a real title pulled from the document's own text; fall back to the filename.
+            'title' => $this->titleFromBody($text) ?? $this->basenameTitle($absPath),
             'doc_type' => 'PDF',
             'pages' => $pages ?: null,
         ];
+    }
+
+    /**
+     * Best-effort document title from the first meaningful line of extracted text — skips page
+     * numbers, dates, URLs, and running heads. Returns null when nothing usable is found (caller
+     * falls back to the filename).
+     */
+    private function titleFromBody(string $body): ?string
+    {
+        foreach (preg_split('/\R/', $body, 60) ?: [] as $line) {
+            $line = trim((string) preg_replace('/\s+/', ' ', $line));
+            $len = mb_strlen($line);
+            if ($len < 4 || $len > 120) {
+                continue;                                   // too short / a whole paragraph
+            }
+            if (! preg_match('/\p{L}/u', $line)) {
+                continue;                                   // must contain a letter
+            }
+            if (preg_match('#^(page\s+\d+|\d+|https?://|www\.)#i', $line)) {
+                continue;                                   // page number / URL line
+            }
+            if (str_word_count((string) preg_replace('/[^\p{L} ]/u', ' ', $line)) < 2) {
+                continue;                                   // need ≥2 words
+            }
+
+            return $line;
+        }
+
+        return null;
     }
 
     /**
