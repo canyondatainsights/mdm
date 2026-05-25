@@ -4,7 +4,6 @@ import type {
   Message,
   SettingsInfo,
   SourceDetail,
-  SourceListItem,
   StreamEvent,
   User,
   WikiPageDetail,
@@ -71,7 +70,16 @@ export const api = {
   deleteConversation: (id: number) => req(`/conversations/${id}`, { method: "DELETE" }),
 
   // sources
-  sources: () => req<{ count: number; sources: SourceListItem[] }>("/sources"),
+  sources: (params?: import("./types").SourcesQuery) => {
+    const qs = params
+      ? "?" + new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== null && v !== "")
+            .map(([k, v]) => [k, String(v)]),
+        ).toString()
+      : "";
+    return req<import("./types").SourcesResponse>(`/sources${qs}`);
+  },
   source: (path: string) => req<SourceDetail>(`/sources/${path}`),
 
   // wiki (browse curated knowledge)

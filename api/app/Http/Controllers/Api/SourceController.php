@@ -8,45 +8,86 @@ use App\Models\Source;
 use App\Models\WikiPage;
 use App\Services\Kb\SourceTrust;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class SourceController extends Controller
 {
-    /** Knowledge sources list (wiki pages + uploaded raw sources). */
-    public function index()
+    /**
+     * Knowledge sources list (wiki pages + uploaded raw sources), with server-side search, dimension
+     * filters, pagination, and an optional group-by-counts mode. Scales as the KB grows — the UI loads
+     * a page (or group counts) at a time instead of all ~4k+ rows.
+     */
+    public function index(Request $request)
     {
-        $wiki = WikiPage::orderBy('path')->get()->map(fn ($p) => [
-            'id' => 'wiki:'.$p->id,
-            'kind' => 'wiki',
-            'title' => $p->title,
-            'path' => $p->path,
-            'section' => $p->section,
-            'doc_type' => 'MD',
-            'mdm_vendor' => $p->mdm_vendor,
-            'data_platform' => $p->data_platform,
-            'domain' => $p->domain,
-            'scope' => $p->scope,
-            'updated' => optional($p->page_updated_at)->toDateString(),
-        ]);
+        $perPage = min(max($request->integer('per_page', 50), 1), 200);
+        $groupBy = (string) $request->input('group_by', '');
+        $allowedGroup = ['domain', 'mdm_vendor', 'data_platform', 'doc_type'];
 
-        $raw = Source::where('superseded', false)->orderBy('title')->get()->map(fn ($s) => [
-            'id' => 'raw:'.$s->id,
-            'kind' => 'raw',
-            'title' => $s->title,
-            'path' => $s->path,
-            'doc_type' => $s->doc_type,
-            'mdm_vendor' => $s->mdm_vendor,
-            'data_platform' => $s->data_platform,
-            'domain' => $s->domain,
-            'scope' => $s->scope,
-            'product' => $s->product,
-            'product_version' => $s->product_version,
-            'approved' => $s->approved,
-            'needs_metadata' => $s->needs_metadata,
-            'ingest_status' => $s->ingest_status,
-        ]);
+        // Project both tables into one shape, then filter/paginate the union as a subquery.
+        $wiki = DB::table('wiki_pages')->selectRaw(<<<'SQL'
+            ('wiki:' || id) as id, 'wiki' as kind, title, path, section, 'MD' as doc_type,
+            mdm_vendor, data_platform, domain, scope,
+            cast(null as varchar) as product, cast(null as varchar) as product_version,
+            true as approved, false as needs_metadata, 'ready' as ingest_status,
+            cast(page_updated_at as date) as updated
+        SQL);
+        $raw = DB::table('sources')->where('superseded', false)->selectRaw(<<<'SQL'
+            ('raw:' || id) as id, 'raw' as kind, title, path, cast(null as varchar) as section, doc_type,
+            mdm_vendor, data_platform, domain, scope,
+            product, product_version,
+            approved, needs_metadata, ingest_status,
+            cast(created_at as date) as updated
+        SQL);
 
-        return ['count' => $wiki->count() + $raw->count(), 'sources' => $wiki->concat($raw)->values()];
+        $q = DB::query()->fromSub($wiki->unionAll($raw), 's');
+
+        if ($search = trim((string) $request->input('q', ''))) {
+            $q->where(fn ($w) => $w->where('title', 'ilike', '%'.$search.'%')->orWhere('path', 'ilike', '%'.$search.'%'));
+        }
+        foreach (['doc_type' => 'doc_type', 'vendor' => 'mdm_vendor', 'platform' => 'data_platform', 'domain' => 'domain', 'scope' => 'scope'] as $param => $col) {
+            $val = $request->input($param);
+            if ($val === '—') {
+                $q->whereNull($col);   // expand the "unassigned" group
+            } elseif ($val !== null && $val !== '') {
+                $q->where($col, $val);
+            }
+        }
+        match ($request->input('status')) {
+            'needs_metadata' => $q->where('needs_metadata', true),
+            'unapproved' => $q->where('approved', false),
+            'failed', 'queued', 'processing', 'ready' => $q->where('ingest_status', $request->input('status')),
+            default => null,
+        };
+
+        // Group-by mode: collapsible header counts for the filtered set.
+        if (in_array($groupBy, $allowedGroup, true)) {
+            $groups = (clone $q)
+                ->selectRaw("coalesce({$groupBy}, '—') as grp, count(*) as c")
+                ->groupBy('grp')->orderByDesc('c')->get()
+                ->map(fn ($r) => ['key' => $r->grp, 'count' => (int) $r->c])->values();
+
+            return ['mode' => 'groups', 'group_by' => $groupBy, 'total' => (int) $groups->sum('count'), 'groups' => $groups];
+        }
+
+        // Flat paginated list.
+        $p = $q->orderBy('title')->paginate($perPage);
+
+        return [
+            'mode' => 'list',
+            'total' => $p->total(),
+            'page' => $p->currentPage(),
+            'per_page' => $p->perPage(),
+            'last_page' => $p->lastPage(),
+            'sources' => collect($p->items())->map(fn ($r) => [
+                'id' => $r->id, 'kind' => $r->kind, 'title' => $r->title, 'path' => $r->path,
+                'section' => $r->section, 'doc_type' => $r->doc_type,
+                'mdm_vendor' => $r->mdm_vendor, 'data_platform' => $r->data_platform,
+                'domain' => $r->domain, 'scope' => $r->scope,
+                'product' => $r->product, 'product_version' => $r->product_version,
+                'approved' => (bool) $r->approved, 'needs_metadata' => (bool) $r->needs_metadata,
+                'ingest_status' => $r->ingest_status, 'updated' => $r->updated,
+            ])->values(),
+        ];
     }
 
     /** Source detail for the inspector: metadata + hierarchy + excerpt + origin URL + trust + related. */

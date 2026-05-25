@@ -30,6 +30,42 @@ export interface ClassifySuggestion {
   error?: string;
 }
 
+export interface SourcesQuery {
+  q?: string;
+  doc_type?: string;
+  vendor?: string;
+  platform?: string;
+  domain?: string;
+  scope?: string;
+  status?: string;
+  group_by?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface SourceGroup {
+  key: string;
+  count: number;
+}
+
+export interface SourcesListResponse {
+  mode: "list";
+  total: number;
+  page: number;
+  per_page: number;
+  last_page: number;
+  sources: SourceListItem[];
+}
+
+export interface SourcesGroupsResponse {
+  mode: "groups";
+  group_by: string;
+  total: number;
+  groups: SourceGroup[];
+}
+
+export type SourcesResponse = SourcesListResponse | SourcesGroupsResponse;
+
 export interface DuplicateInfo {
   duplicate: boolean;
   by: "content" | "filename" | null;

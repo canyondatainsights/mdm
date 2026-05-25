@@ -1,10 +1,11 @@
 "use client";
 
 import { api, type StewardshipTask } from "@/lib/api";
-import type { SourceListItem, User } from "@/lib/types";
+import type { User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
-import { DocTypeBadge, HierPill, Pill, subjectTone, vendorTone } from "./ui";
+import { SourcesBrowser } from "./SourcesBrowser";
+import { Pill } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "");
 
@@ -25,13 +26,11 @@ const TITLES: Record<string, string> = {
 export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }: {
   view: string; user: User; onClose: () => void; onOpenSource: (path: string) => void; onOpenUpload?: () => void;
 }) {
-  const [sources, setSources] = useState<SourceListItem[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [tasks, setTasks] = useState<StewardshipTask[] | null>(null);
   const canReview = user.roles.includes("Admin") || user.roles.includes("Steward");
 
   useEffect(() => {
-    if (view === "sources") api.sources().then((r) => setSources(r.sources)).catch(() => {});
     if (view === "stats") api.stats().then((s) => setStats(s as unknown as Stats)).catch(() => {});
     if (view === "stewardship") api.stewardship().then(setTasks).catch(() => {});
   }, [view]);
@@ -81,33 +80,7 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
       )}
 
       {view === "sources" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {onOpenUpload && (
-            <button onClick={onOpenUpload} className="hov-lift"
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", marginBottom: 4, padding: "7px 12px", borderRadius: 8, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 12.5, fontWeight: 600 }}>
-              + Upload documentation
-            </button>
-          )}
-          {!sources && <div style={{ fontSize: 12.5, color: "var(--fg-4)" }}>Loading…</div>}
-          {sources?.map((s) => (
-            <button key={s.id} onClick={() => { if (s.kind === "wiki") onOpenSource(s.path); }} className="hov-row"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 8, textAlign: "left", width: "100%" }}>
-              <DocTypeBadge type={s.doc_type} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</div>
-                <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{s.path}</div>
-              </div>
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                {s.needs_metadata && <Pill size="xs" tone="warn">needs tags</Pill>}
-                {s.mdm_vendor && <HierPill level={1} tone={vendorTone(s.mdm_vendor, 1)} label={cap(s.mdm_vendor)} />}
-                {s.data_platform && <HierPill level={1} tone={vendorTone(s.data_platform, 1)} label={cap(s.data_platform)} />}
-                {s.product && <HierPill level={2} tone={vendorTone(s.mdm_vendor ?? s.data_platform, 2)} label={`${s.product}${s.product_version ? ` ${s.product_version}` : ""}`} />}
-                {s.domain && s.domain !== "general" && <HierPill level={3} dot={false} tone={subjectTone(s.domain, 2)} label={cap(s.domain)} />}
-                {s.scope === "neutral" && <Pill size="xs" tone="ok">shared</Pill>}
-              </div>
-            </button>
-          ))}
-        </div>
+        <SourcesBrowser onOpenSource={onOpenSource} onOpenUpload={onOpenUpload} />
       )}
 
       {view === "stewardship" && (
