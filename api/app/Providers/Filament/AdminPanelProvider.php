@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('Sidecar')
+            ->favicon(asset('admin-favicon.svg'))
             // Cobalt accent + cool slate neutrals — a distinct back-office identity, separate from
             // the warm coral end-user app. Applied via native panel APIs (runtime CSS vars + Bunny
             // font CDN + inline brand SVG) so the admin needs no vite/theme build to render.
