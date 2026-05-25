@@ -25,10 +25,17 @@ class UrlFetcher
             throw new \RuntimeException("Failed to fetch URL (HTTP {$response->status()}).");
         }
 
+        // Only ingest HTML/text — PDFs and other binaries can't be parsed here and produce junk
+        // titles ("Acrobat Accessibility Report") and empty bodies. Fail cleanly instead.
+        $ct = strtolower((string) $response->header('Content-Type'));
+        if ($ct !== '' && ! str_contains($ct, 'html') && ! str_contains($ct, 'text/') && ! str_contains($ct, 'xml')) {
+            throw new \RuntimeException("Unsupported content type for URL ingest ({$ct}).");
+        }
+
         $html = $response->body();
 
         $result = [
-            'title' => $this->extractTitle($html) ?? (parse_url($url, PHP_URL_HOST) ?: 'Reference'),
+            'title' => $this->extractTitle($html) ?: $this->titleFromUrl($url),
             'text' => $this->htmlToText($html),
         ];
         if ($withMarkdown) {
@@ -207,6 +214,20 @@ class UrlFetcher
         } catch (\Throwable) {
             return '';
         }
+    }
+
+    /** A readable title from the URL path leaf (fallback when the page has no usable <title>). */
+    private function titleFromUrl(string $url): string
+    {
+        $host = parse_url($url, PHP_URL_HOST) ?: 'Reference';
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        if ($path === '') {
+            return $host;
+        }
+        $leaf = preg_replace('/\.(html?|php|aspx?)$/i', '', basename($path)) ?? basename($path);
+        $leaf = trim(preg_replace('/[-_]+/', ' ', urldecode($leaf)) ?? $leaf);
+
+        return $leaf !== '' ? ucwords($leaf) : $host;
     }
 
     public function extractTitle(string $html): ?string

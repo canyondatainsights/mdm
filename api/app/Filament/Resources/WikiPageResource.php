@@ -209,6 +209,9 @@ class WikiPageResource extends Resource
         return $table
             // Drag to reorder pages within a section; the web wiki browser lists them in this order.
             ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(fn (\Filament\Actions\Action $action, bool $isReordering) => $action
+                ->button()->color('primary')->icon('heroicon-o-arrows-up-down')
+                ->label($isReordering ? 'Done reordering' : 'Reorder pages'))
             ->groups(['section'])
             ->defaultGroup('section')
             ->columns([

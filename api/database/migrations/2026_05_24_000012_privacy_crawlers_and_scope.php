@@ -26,14 +26,14 @@ return new class extends Migration
                 'key' => 'gdpr-info',
                 'name' => 'GDPR (gdpr-info.eu)',
                 'sitemaps' => ['https://gdpr-info.eu/sitemap.xml'],
-                'exclude' => ['?', '/de/', '/fr/', '/it/', '/es/', '/nl/', '/pl/', '/pt-br/', '/ro/', '/cs/', '/issues/'],
+                'exclude' => ['?', '.pdf', '/de/', '/fr/', '/it/', '/es/', '/nl/', '/pl/', '/pt-br/', '/ro/', '/cs/', '/issues/'],
                 'sections' => [['section' => 'gdpr', 'product' => null, 'domain' => 'data-privacy', 'match' => ['/']]],
             ],
             [
                 'key' => 'cppa-ca-gov',
                 'name' => 'California CPPA (CCPA/CPRA)',
                 'sitemaps' => ['https://cppa.ca.gov/sitemap.xml'],
-                'exclude' => ['?', '/meetings', '/events', '/press', '/news', '/careers', '/announcements', '/board'],
+                'exclude' => ['?', '.pdf', '.docx', '.zip', '/pdf/', '/meetings', '/events', '/press', '/news', '/careers', '/announcements', '/board'],
                 'sections' => [['section' => 'ccpa', 'product' => null, 'domain' => 'data-privacy', 'match' => ['/']]],
             ],
         ];

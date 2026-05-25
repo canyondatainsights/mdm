@@ -65,21 +65,22 @@ class SourceResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                Tables\Columns\TextColumn::make('doc_type')->badge(),
+                Tables\Columns\TextColumn::make('doc_type')->badge()->sortable(),
                 Tables\Columns\TextColumn::make('mdm_vendor')
                     ->label('Vendor')
-                    ->placeholder('—'),
+                    ->placeholder('—')->sortable(),
                 Tables\Columns\TextColumn::make('data_platform')
                     ->label('Platform')
-                    ->placeholder('—'),
+                    ->placeholder('—')->sortable(),
                 Tables\Columns\TextColumn::make('domain')
-                    ->placeholder('—'),
+                    ->placeholder('—')->sortable(),
                 Tables\Columns\TextColumn::make('product')
                     ->placeholder('—')
-                    ->description(fn (Source $r) => $r->product_version),
+                    ->description(fn (Source $r) => $r->product_version)->sortable(),
                 Tables\Columns\TextColumn::make('ingest_status')
                     ->label('Ingestion')
                     ->badge()
+                    ->sortable()
                     ->color(fn (string $state) => match ($state) {
                         'ready' => 'success',
                         'processing' => 'warning',
@@ -89,9 +90,10 @@ class SourceResource extends Resource
                 Tables\Columns\IconColumn::make('needs_metadata')
                     ->label('Needs tags')
                     ->boolean()
+                    ->sortable()
                     ->trueIcon('heroicon-o-exclamation-triangle')->trueColor('warning')
                     ->falseIcon('heroicon-o-check-circle')->falseColor('success'),
-                Tables\Columns\IconColumn::make('approved')->boolean(),
+                Tables\Columns\IconColumn::make('approved')->boolean()->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
@@ -105,6 +107,12 @@ class SourceResource extends Resource
                     ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('mdm_vendor'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
                 Tables\Filters\SelectFilter::make('data_platform')
                     ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('data_platform'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                Tables\Filters\SelectFilter::make('domain')
+                    ->label('Subject / domain')
+                    ->options(fn () => collect(\App\Services\Taxonomy\Taxonomy::values('domain'))->mapWithKeys(fn ($v) => [$v => $v])->toArray()),
+                Tables\Filters\SelectFilter::make('ingest_status')
+                    ->label('Ingestion')
+                    ->options(['ready' => 'Ready', 'processing' => 'Processing', 'queued' => 'Queued', 'failed' => 'Failed']),
             ])
             ->recordActions([
                 Actions\ViewAction::make(),
