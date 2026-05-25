@@ -28,7 +28,7 @@ class WikiAuthor
         if ($relPath) {
             $rel = ltrim($relPath, '/');
         } else {
-            $section = trim($section) ?: '01-foundations';
+            $section = Str::slug(trim($section)) ?: '01-foundations';
             $slug = Str::slug($title) ?: ('page-'.substr(md5($title.microtime()), 0, 8));
             $rel = "wiki/{$section}/{$slug}.md";
         }

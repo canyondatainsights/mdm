@@ -12,7 +12,7 @@ class WikiController extends Controller
     /** Wiki pages grouped-ready for the browser (ordered by section, then title). */
     public function index()
     {
-        $pages = WikiPage::orderBy('section')->orderBy('title')->get()->map(fn (WikiPage $p) => [
+        $pages = WikiPage::orderBy('section')->orderBy('sort_order')->orderBy('title')->get()->map(fn (WikiPage $p) => [
             'id' => $p->id,
             'title' => $p->title,
             'path' => $p->path,

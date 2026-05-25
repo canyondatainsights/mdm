@@ -71,7 +71,14 @@ class WikiPageResource extends Resource
                 ->required()
                 ->searchable()
                 ->disabledOn('edit')
-                ->helperText('The page is filed under kb/wiki/<section>/. Cannot be moved after creation.'),
+                ->createOptionForm([
+                    Forms\Components\TextInput::make('value')
+                        ->label('New section')
+                        ->required()
+                        ->helperText('Prefix with NN- to control its order, e.g. 11-compliance.'),
+                ])
+                ->createOptionUsing(fn (array $data) => \Illuminate\Support\Str::slug($data['value']))
+                ->helperText('Pick a section or create one with +. The page is filed under kb/wiki/<section>/ and cannot be moved after creation.'),
             Forms\Components\TextInput::make('path')
                 ->disabled()
                 ->dehydrated(false)
@@ -200,15 +207,19 @@ class WikiPageResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('path')
+            // Drag to reorder pages within a section; the web wiki browser lists them in this order.
+            ->reorderable('sort_order')
+            ->groups(['section'])
+            ->defaultGroup('section')
             ->columns([
-                Tables\Columns\TextColumn::make('path')
-                    ->searchable()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('sort_order')->label('#')->toggleable()->sortable(),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
                     ->sortable()
                     ->limit(40),
+                Tables\Columns\TextColumn::make('path')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('section')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('mdm_vendor')
