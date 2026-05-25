@@ -98,23 +98,93 @@ class DocumentParser
      */
     private function titleFromBody(string $body): ?string
     {
-        foreach (preg_split('/\R/', $body, 60) ?: [] as $line) {
-            $line = trim((string) preg_replace('/\s+/', ' ', $line));
-            $len = mb_strlen($line);
-            if ($len < 4 || $len > 120) {
-                continue;                                   // too short / a whole paragraph
+        $lines = array_values(array_filter(
+            array_map(fn ($l) => trim((string) preg_replace('/\s+/', ' ', $l)), array_slice(preg_split('/\R/', $body) ?: [], 0, 25)),
+            fn ($l) => $l !== '',
+        ));
+        $n = count($lines);
+        if ($n === 0) {
+            return null;
+        }
+
+        $isDate = fn (string $l): bool => (bool) preg_match('/^(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(t(ember)?)?|oct(ober)?|nov(ember)?|dec(ember)?)\.?\s+\d{4}$/i', $l)
+            || (bool) preg_match('/^(q[1-4]\s+)?\d{4}$/', $l);
+        $isLegal = fn (string $l): bool => (bool) preg_match('/^(©|copyright|this software|u\.s\.\s|all rights reserved)/i', $l);
+        // Noise: page numbers, URLs, bare versions, dates, legal, and lines too short/long to be a title.
+        $isNoise = fn (string $l): bool => mb_strlen($l) < 3 || mb_strlen($l) > 120
+            || ! preg_match('/\p{L}/u', $l)
+            || (bool) preg_match('#^(page\s+\d+|\d+|v?\d+(\.\d+)+|https?://|www\.)#i', $l)
+            || $isDate($l) || $isLegal($l);
+
+        // Brand-mark (®/™) words → lowercase / original word arrays (mark stripped) for prefix matching.
+        $wl = fn (string $s): array => preg_split('/\s+/', mb_strtolower(trim((string) preg_replace('/[®™©]/u', ' ', $s))), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $wo = fn (string $s): array => preg_split('/\s+/', trim((string) preg_replace('/[®™©]/u', ' ', $s)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        // Find a leading ®/™ brand banner (the per-doc-set product header, e.g. "Informatica® …").
+        $bannerIdx = null;
+        foreach (array_slice($lines, 0, 4) as $k => $l) {
+            if (preg_match('/[®™]/u', $l)) {
+                $bannerIdx = $k;
+                break;
             }
-            if (! preg_match('/\p{L}/u', $line)) {
-                continue;                                   // must contain a letter
-            }
-            if (preg_match('#^(page\s+\d+|\d+|https?://|www\.)#i', $line)) {
-                continue;                                   // page number / URL line
-            }
-            if (str_word_count((string) preg_replace('/[^\p{L} ]/u', ' ', $line)) < 2) {
-                continue;                                   // need ≥2 words
+        }
+
+        if ($bannerIdx !== null) {
+            // Candidate banner prefixes, incl. a banner that wraps onto the next line — but only when
+            // that line is a SINGLE short word (e.g. "Cloud"), never a multi-word phrase (which would
+            // be the title's first words, e.g. "Amazon S3 V2", and must not be eaten into the prefix).
+            $prefixes = [$wl($lines[$bannerIdx])];
+            $nextWords = isset($lines[$bannerIdx + 1]) ? $wl($lines[$bannerIdx + 1]) : [];
+            if (count($nextWords) === 1 && mb_strlen($lines[$bannerIdx + 1]) <= 14 && ! $isDate($lines[$bannerIdx + 1])) {
+                $prefixes[] = array_merge($wl($lines[$bannerIdx]), $nextWords);
             }
 
-            return $line;
+            // Primary signal: the doc's own "Product Title" line — a nearby line that begins with the
+            // banner words and continues. That continuation IS the document title.
+            $best = null;
+            $bestLen = 0;
+            for ($j = $bannerIdx + 1; $j < min($n, $bannerIdx + 8); $j++) {
+                if ($isDate($lines[$j]) || $isLegal($lines[$j])) {
+                    continue;
+                }
+                $lw = $wl($lines[$j]);
+                $ow = $wo($lines[$j]);
+                foreach ($prefixes as $pre) {
+                    $pl = count($pre);
+                    if ($pl > $bestLen && count($lw) > $pl && array_slice($lw, 0, $pl) === $pre) {
+                        $suffix = trim(implode(' ', array_slice($ow, $pl)));
+                        if (mb_strlen($suffix) >= 3) {
+                            $best = $suffix;
+                            $bestLen = $pl;
+                        }
+                    }
+                }
+            }
+            if ($best !== null) {
+                return $best;
+            }
+
+            // Fallback (clean cover with no combined line): skip the banner + dates, take the next line.
+            $i = $bannerIdx + 1;
+            while ($i < $n && $isNoise($lines[$i])) {
+                $i++;
+            }
+            if ($i < $n) {
+                $title = $lines[$i];
+                if (mb_strlen($title) >= 18 && isset($lines[$i + 1]) && ! $isNoise($lines[$i + 1])
+                    && mb_strlen($lines[$i + 1]) <= 25 && ! preg_match('/[.:!?]$/', $title)) {
+                    $title .= ' '.$lines[$i + 1];
+                }
+
+                return $title;
+            }
+        }
+
+        // Generic doc (no brand banner): the first content line that looks like a title (≥2 words).
+        foreach ($lines as $l) {
+            if (! $isNoise($l) && str_word_count((string) preg_replace('/[^\p{L} ]/u', ' ', $l)) >= 2) {
+                return $l;
+            }
         }
 
         return null;
@@ -132,6 +202,18 @@ class DocumentParser
             : (in_array($ext, config('mdm.uploads.extensions', []), true) ? (string) file_get_contents($absPath) : '');
 
         return mb_substr(trim((string) $text), 0, $maxChars);
+    }
+
+    /** Re-derive a document title from its cover / first pages only — cheap, no full extraction. */
+    public function coverTitle(string $absPath): ?string
+    {
+        if (strtolower(pathinfo($absPath, PATHINFO_EXTENSION)) === 'pdf') {
+            $text = $this->pdftotextHead($absPath, 3);
+
+            return $text ? $this->titleFromBody($text) : null;
+        }
+
+        return $this->parse($absPath)['title'] ?? null;
     }
 
     /** First few pages of embedded PDF text — cheap signal for classification. */
