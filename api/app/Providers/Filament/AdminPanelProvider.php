@@ -49,6 +49,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
             ])
+            // Match the Sidecar design system typography (Inter + JetBrains Mono + compact prose).
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => view('filament.typography')->render())
             // Auto-logout after 15 minutes of no user activity (client-side idle timer).
             ->renderHook(PanelsRenderHook::BODY_END, fn (): string => view('filament.idle-logout')->render())
             ->middleware([
