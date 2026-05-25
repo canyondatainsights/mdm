@@ -71,7 +71,7 @@ export function WikiBrowser({ onToggleSidebar, sidebarCollapsed }: {
         {onToggleSidebar && <IconButton icon="sidebar" label="Toggle sidebar" onClick={onToggleSidebar} active={!sidebarCollapsed} />}
         <div style={{ width: 1, height: 18, background: "var(--border)" }} />
         <Icon name="wiki" size={15} style={{ color: "var(--fg-3)" }} />
-        <span style={{ fontSize: 13.5, fontWeight: 500 }}>Browse knowledge</span>
+        <span style={{ fontSize: 13.5, fontWeight: 500 }}>Browse Wiki KB's</span>
         {sel && (
           <>
             <Icon name="chevron-right" size={14} style={{ color: "var(--fg-4)" }} />

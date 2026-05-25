@@ -11,7 +11,7 @@ const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).r
 
 const NAV = [
   { key: "chat", icon: "sparkle", label: "Ask the hub", tone: "accent" },
-  { key: "wiki", icon: "wiki", label: "Browse knowledge", tone: "rose" },
+  { key: "wiki", icon: "wiki", label: "Browse Wiki KB's", tone: "rose" },
   { key: "research", icon: "research", label: "Research topics", tone: "teal" },
   { key: "sources", icon: "book", label: "Knowledge sources", tone: "violet" },
   { key: "stats", icon: "graph", label: "Data model explorer", tone: "teal" },
