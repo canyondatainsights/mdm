@@ -183,6 +183,7 @@ export function ChatArea({
           setMessages((m) => [...m, { id: e.message_id, role: "assistant", content: [{ type: "markdown", text: acc }], citations: e.citations, confidence: e.confidence as Message["confidence"] }]);
           setStreamText(""); setStreamCites([]); onChanged();
         } else if (e.type === "suggestions") { setSuggestions(e.questions ?? []); }
+        else if (e.type === "title") { onChanged(); /* relabel the conversation in the sidebar */ }
         else if (e.type === "meta") { /* sources_found available if needed */ }
         else if (e.type === "error") {
           setError(e.message);

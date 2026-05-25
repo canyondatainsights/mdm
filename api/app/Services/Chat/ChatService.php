@@ -134,7 +134,20 @@ class ChatService
             'confidence' => $confidence,
         ];
 
-        // 7. Contextual follow-up suggestions (best-effort; never affects the answer). Emitted after
+        // 7. Title the conversation from its first exchange (best-effort; after 'done' so it's off the
+        //    answer's critical path). Only when still generic + this is the first assistant turn.
+        if (in_array((string) $conversation->title, ['', 'New conversation'], true)
+            && Message::where('conversation_id', $conversation->id)->where('role', 'assistant')->count() === 1) {
+            try {
+                $title = app(TitleService::class)->generate($userText, $full);
+                $conversation->update(['title' => $title]);
+                yield ['type' => 'title', 'title' => $title];
+            } catch (Throwable) {
+                // ignore — titling is optional
+            }
+        }
+
+        // 8. Contextual follow-up suggestions (best-effort; never affects the answer). Emitted after
         //    'done' so suggestion generation isn't on the answer's critical path.
         try {
             $suggestions = app(SuggestionService::class)->suggest($conversation, $userText, $full);

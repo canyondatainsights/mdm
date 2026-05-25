@@ -142,4 +142,5 @@ export type StreamEvent =
   | { type: "delta"; text: string }
   | { type: "done"; message_id: number; citations: Citation[]; confidence: string }
   | { type: "suggestions"; questions: string[] }
+  | { type: "title"; title: string }
   | { type: "error"; message: string };
