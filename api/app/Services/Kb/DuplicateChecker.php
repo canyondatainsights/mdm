@@ -23,15 +23,25 @@ class DuplicateChecker
      */
     public function check(UploadedFile $file): array
     {
+        return $this->checkFile($file->getRealPath(), $file->getClientOriginalName());
+    }
+
+    /**
+     * Core check by absolute path + original filename (usable from queued jobs that hold a staged file
+     * rather than an UploadedFile).
+     *
+     * @return array{duplicate:bool, by:?string, existing:?array{id:int,title:?string,path:string}}
+     */
+    public function checkFile(string $absPath, string $originalName): array
+    {
         // 1. Exact-content match — same bytes already ingested, even under a different name.
-        $hash = @md5_file($file->getRealPath());
+        $hash = @md5_file($absPath);
         if ($hash && $existing = Source::where('content_hash', $hash)->where('superseded', false)->first()) {
             return $this->hit('content', $existing);
         }
 
         // 2. Same slugified filename already an active source.
-        $slug = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-            .'.'.strtolower($file->getClientOriginalExtension());
+        $slug = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)).'.'.strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if ($existing = Source::whereRaw('lower(path) like ?', ['%/'.strtolower($slug)])->where('superseded', false)->first()) {
             return $this->hit('filename', $existing);
         }
