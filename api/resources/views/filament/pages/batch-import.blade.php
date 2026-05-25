@@ -66,6 +66,32 @@
                 </div>
             </x-filament::section>
         @endif
+
+        @php($log = $this->importLog())
+        @if ($log->isNotEmpty())
+            @php($c = $this->importCounts())
+            <x-filament::section icon="heroicon-o-clipboard-document-list" collapsible>
+                <x-slot name="heading">Import log</x-slot>
+                <x-slot name="description">
+                    {{ number_format($c['ingested']) }} ingested ·
+                    {{ number_format($c['skipped']) }} skipped (duplicates) ·
+                    {{ number_format($c['failed']) }} failed — across all batches. Newest first; full library in
+                    Knowledge Base → Sources.
+                </x-slot>
+                <div class="max-h-96 space-y-1 overflow-auto text-sm">
+                    @foreach ($log as $row)
+                        <div class="flex items-center gap-3">
+                            <x-filament::badge :color="$row['status'] === 'ingested' ? 'success' : ($row['status'] === 'failed' ? 'danger' : 'gray')">
+                                {{ $row['status'] }}
+                            </x-filament::badge>
+                            <span class="font-mono text-xs text-gray-700 dark:text-gray-200">{{ $row['file'] }}</span>
+                            <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $row['detail'] }}</span>
+                            <span class="ml-auto whitespace-nowrap text-xs text-gray-400">{{ $row['time']?->diffForHumans() }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
     </div>
 
     {{-- Guide --}}

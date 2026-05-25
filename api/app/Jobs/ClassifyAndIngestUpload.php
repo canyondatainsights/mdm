@@ -110,4 +110,14 @@ class ClassifyAndIngestUpload implements ShouldQueue
             ]);
         }
     }
+
+    /** Log the failure (file + reason) so it surfaces in the batch-import log. */
+    public function failed(\Throwable $e): void
+    {
+        AuditLog::record('batch.failed', [
+            'batch_id' => $this->batch()?->id,
+            'file' => $this->originalName,
+            'error' => Str::limit($e->getMessage(), 160),
+        ]);
+    }
 }

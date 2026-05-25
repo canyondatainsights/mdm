@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Chunk;
 use App\Models\Source;
 use App\Services\Kb\UploadTagger;
+use App\Services\Taxonomy\Taxonomy;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -121,14 +122,7 @@ class BatchImport extends Page
         ];
     }
 
-    /** Batch-import log ids for the recent runs shown on the page (newest first). */
-    protected function recentBatchIds(int $limit = 8): array
-    {
-        return AuditLog::where('action', 'batch.import')->latest('created_at')->limit($limit)->get()
-            ->pluck('meta.batch_id')->filter()->values()->all();
-    }
-
-    /** Live progress for each recent batch (running ones first). */
+    /** Live progress for each recent batch still worth showing (running, or finished WITH failures). */
     public function recentBatches(): Collection
     {
         return AuditLog::where('action', 'batch.import')->latest('created_at')->limit(8)->get()
@@ -148,29 +142,63 @@ class BatchImport extends Page
                     'skipped' => $id ? AuditLog::where('action', 'batch.skipped')->whereJsonContains('meta->batch_id', $id)->count() : 0,
                 ];
             })
-            // Show unfinished (running) batches first, then most recent.
+            // Clear cleanly-completed batches (100% + no failures); keep running + failed ones.
+            ->reject(fn ($x) => $x['finished'] && $x['failed'] === 0)
+            // Running batches first, then most recent.
             ->sortBy(fn ($x) => $x['finished'] ? 1 : 0)
             ->values();
     }
 
-    /** Proposed (un-created) new subjects across the recent batches, deduped with counts + paths. */
+    /**
+     * Proposed new subjects awaiting approval, deduped with counts + paths. They persist until
+     * approved — approving adds the subject to the taxonomy, so we simply drop any proposal whose
+     * value already exists there (approved → cleared; not approved → stays).
+     */
     public function proposedSubjects(): Collection
     {
-        $ids = $this->recentBatchIds();
-        if (empty($ids)) {
-            return collect();
-        }
+        $existing = array_map('strval', Taxonomy::values('domain'));
 
-        return AuditLog::where('action', 'batch.proposed_subject')
-            ->where(fn ($q) => array_map(fn ($id) => $q->orWhereJsonContains('meta->batch_id', $id), $ids))
-            ->get()
-            ->groupBy(fn ($r) => $r->meta['value'])
+        return AuditLog::where('action', 'batch.proposed_subject')->latest('created_at')->limit(500)->get()
+            ->groupBy(fn ($r) => (string) ($r->meta['value'] ?? ''))
+            ->reject(fn ($g, $value) => $value === '' || in_array($value, $existing, true))
             ->map(fn ($g) => [
                 'value' => $g->first()->meta['value'],
                 'label' => $g->first()->meta['label'] ?? $g->first()->meta['value'],
                 'count' => $g->count(),
-                'paths' => $g->pluck('meta.path')->filter()->values()->all(),
+                'paths' => $g->pluck('meta.path')->filter()->unique()->values()->all(),
             ])->values();
+    }
+
+    /** Persistent log of what each batch imported — ingested, skipped (duplicate), and failed. */
+    public function importLog(int $limit = 80): Collection
+    {
+        return AuditLog::whereIn('action', ['batch.ingested', 'batch.skipped', 'batch.failed'])
+            ->latest('created_at')->limit($limit)->get()
+            ->map(function ($l) {
+                $m = is_array($l->meta) ? $l->meta : [];
+                $status = match ($l->action) {
+                    'batch.ingested' => 'ingested',
+                    'batch.skipped' => 'skipped',
+                    default => 'failed',
+                };
+                $detail = match ($status) {
+                    'ingested' => trim(implode(' · ', array_filter([$m['vendor'] ?? null, $m['domain'] ?? null, isset($m['chunks']) ? $m['chunks'].' chunks' : null]))) ?: '—',
+                    'skipped' => 'duplicate'.(! empty($m['existing']) ? ' of '.basename((string) $m['existing']) : ''),
+                    default => (string) ($m['error'] ?? 'error'),
+                };
+
+                return ['time' => $l->created_at, 'status' => $status, 'file' => $m['file'] ?? basename((string) ($m['path'] ?? '?')), 'detail' => $detail];
+            });
+    }
+
+    /** All-time batch import tallies for the log header. */
+    public function importCounts(): array
+    {
+        return [
+            'ingested' => AuditLog::where('action', 'batch.ingested')->count(),
+            'skipped' => AuditLog::where('action', 'batch.skipped')->count(),
+            'failed' => AuditLog::where('action', 'batch.failed')->count(),
+        ];
     }
 
     /** Add each proposed subject to the taxonomy and retag the documents that proposed it (no LLM). */
