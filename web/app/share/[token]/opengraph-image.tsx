@@ -30,10 +30,16 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           background: "linear-gradient(135deg, #fbf6f0 0%, #f6e6db 100%)", padding: "72px 80px", fontFamily: "sans-serif",
         }}
       >
-        {/* brand row */}
+        {/* brand row — the Sidecar "Buddy Duo" two-bubble logo */}
         <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ width: 56, height: 48, background: "#e2613e", borderRadius: 16, display: "flex" }} />
-          <div style={{ marginLeft: 22, fontSize: 40, fontWeight: 800, color: "#2b2320", letterSpacing: -1 }}>Sidecar</div>
+          {/* host chat bubble (coral) */}
+          <div style={{ width: 84, height: 64, background: "#e2613e", borderRadius: "22px 22px 22px 6px", display: "flex" }} />
+          {/* buddy chat bubble (dark) with dot eyes */}
+          <div style={{ width: 56, height: 48, marginLeft: 14, background: "#2b2320", borderRadius: "16px 16px 16px 5px", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 8, background: "#ffffff", display: "flex" }} />
+            <div style={{ width: 8, height: 8, borderRadius: 8, background: "#ffffff", display: "flex" }} />
+          </div>
+          <div style={{ marginLeft: 24, fontSize: 44, fontWeight: 800, color: "#2b2320", letterSpacing: -1 }}>Sidecar</div>
         </div>
 
         {/* title */}
