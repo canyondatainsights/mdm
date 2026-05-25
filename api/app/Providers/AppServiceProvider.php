@@ -6,6 +6,7 @@ use App\Services\Embeddings\Embedder;
 use App\Services\Embeddings\FakeEmbedder;
 use App\Services\Embeddings\SidecarEmbedder;
 use App\Services\Embeddings\VoyageEmbedder;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -38,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Admin-controlled pause: while the flag file exists, workers idle (returning false from a
+        // Looping listener makes the daemon skip fetching) instead of being killed — works with the
+        // self-healing worker loop. Toggled from Admin → System → Queue & workers.
+        Queue::looping(fn () => is_file(storage_path('framework/queue-paused')) ? false : null);
     }
 }
