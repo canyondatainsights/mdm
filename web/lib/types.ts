@@ -30,8 +30,14 @@ export interface ClassifySuggestion {
   error?: string;
 }
 
+export interface DuplicateInfo {
+  duplicate: boolean;
+  by: "content" | "filename" | null;
+  existing: { id: number; title: string | null; path: string } | null;
+}
+
 export interface ClassifyResult {
-  files: { filename: string; suggestion: ClassifySuggestion; is_url?: boolean }[];
+  files: { filename: string; suggestion: ClassifySuggestion; is_url?: boolean; duplicate?: DuplicateInfo }[];
 }
 
 export interface Conversation {

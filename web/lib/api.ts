@@ -80,10 +80,12 @@ export const api = {
   classifyUploads: (form: FormData) =>
     req<import("./types").ClassifyResult>("/uploads/classify", { method: "POST", body: form }),
   upload: (form: FormData) =>
-    req<{ ok: boolean; queued: number; files: { path?: string; url?: string; status: string }[] }>(
-      "/uploads",
-      { method: "POST", body: form },
-    ),
+    req<{
+      ok: boolean;
+      queued: number;
+      skipped: number;
+      files: { path?: string; url?: string; name?: string; status: string; by?: string | null; existing?: { id: number; title: string | null; path: string } | null }[];
+    }>("/uploads", { method: "POST", body: form }),
   uploadStatus: (paths: string[]) =>
     req<{ statuses: Record<string, { status: string; needs_metadata: boolean; chunks: number }> }>(
       "/uploads/status",

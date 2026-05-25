@@ -1,9 +1,12 @@
 "use client";
 
 import { api } from "@/lib/api";
-import type { Dimensions } from "@/lib/types";
+import type { Dimensions, DuplicateInfo } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "./Modal";
+
+// Mirrors the server's mdm.uploads.max_files (UPLOAD_MAX_FILES); the API enforces it authoritatively.
+const MAX_FILES = 20;
 
 const labelStyle = { fontSize: 12, fontWeight: 600, color: "var(--fg-2)", display: "block", marginBottom: 5 } as const;
 const fieldStyle = {
@@ -30,6 +33,8 @@ type ReviewRow = {
   reasoning: string | null;
   proposed: { value: string; label: string } | null;
   applyNew: boolean;
+  duplicate: DuplicateInfo | null;
+  replace: boolean;
 };
 
 const CONF_COLOR: Record<Conf, string> = { high: "var(--ok)", medium: "var(--accent)", low: "var(--danger)" };
@@ -78,11 +83,21 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
   const updateRow = (i: number, patch: Partial<ReviewRow>) =>
     setReviews((rs) => (rs ? rs.map((r, j) => (j === i ? { ...r, ...patch } : r)) : rs));
 
+  // True (and surfaces an error) when more than MAX_FILES files are selected.
+  const tooManyFiles = (files: FileList | null | undefined): boolean => {
+    if (files && files.length > MAX_FILES) {
+      setMsg({ ok: false, text: `You can upload at most ${MAX_FILES} files at once — you selected ${files.length}.` });
+      return true;
+    }
+    return false;
+  };
+
   // Scan & classify the selected files and/or URL (optional) — pre-fills per-source tags for review.
   const scanAndClassify = async () => {
     const files = fileRef.current?.files;
     const hasFiles = files && files.length > 0;
     if (!hasFiles && !url.trim()) { setMsg({ ok: false, text: "Add files or a URL to scan." }); return; }
+    if (tooManyFiles(files)) return;
     setClassifying(true); setMsg(null);
     try {
       const form = new FormData();
@@ -106,6 +121,8 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
           reasoning: s.error ? `Classify failed: ${s.error}` : s.reasoning,
           proposed: s.proposed_subject,
           applyNew: false,
+          duplicate: row.duplicate ?? null,
+          replace: false,
         };
       }));
     } catch (e) {
@@ -128,6 +145,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
       setMsg({ ok: false, text: "Add at least one file or a reference URL." });
       return;
     }
+    if (tooManyFiles(files)) return;
     setBusy(true); setMsg(null);
     try {
       const form = new FormData();
@@ -155,6 +173,7 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
             extension: r.extension || null,
             financial_model: r.financial_model || null,
             scope: r.scope || null,
+            replace: r.replace || undefined,
           };
           if (r.applyNew && r.proposed) tags.new_subject = r.proposed;
           if (r.isUrl) form.append("url_meta", JSON.stringify(tags));
@@ -164,7 +183,9 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
       }
 
       const r = await api.upload(form);
-      setMsg(null);
+      setMsg(r.skipped > 0
+        ? { ok: true, text: `${r.queued} queued · ${r.skipped} skipped as already in the KB. Toggle “Replace anyway” to re-import.` }
+        : null);
       setStatuses({});
       setReviews(null);
       setTracked(
@@ -195,9 +216,10 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
         type="file"
         multiple
         accept=".pdf,.md,.markdown,.txt,.sql,.py,.json,.yaml,.yml,.xml,.js,.ts,.tsx,.jsx,.sh,.bash,.scala,.java,.rb,.go,.csv,.tsv,.ini,.conf,.properties,.toml,.r"
-        onChange={() => setReviews(null)}
-        style={{ ...fieldStyle, padding: "7px 10px", marginBottom: 12 }}
+        onChange={(e) => { setReviews(null); if (!tooManyFiles(e.target.files)) setMsg(null); }}
+        style={{ ...fieldStyle, padding: "7px 10px", marginBottom: 4 }}
       />
+      <p style={{ fontSize: 11, color: "var(--fg-4)", marginBottom: 12 }}>Up to {MAX_FILES} files per upload.</p>
 
       <label style={labelStyle}>…or a reference URL</label>
       <input
@@ -287,6 +309,18 @@ export function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUp
                       {r.confidence}
                     </span>
                   </div>
+                  {r.duplicate?.duplicate && (
+                    <div style={{ marginBottom: 8, padding: "6px 9px", borderRadius: 6, background: "rgba(220, 60, 60, 0.08)", border: "1px solid var(--danger)", fontSize: 11.5, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ color: "var(--danger)", fontWeight: 600 }}>Already in KB</span>
+                      <span style={{ color: "var(--fg-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>
+                        matches {r.duplicate.existing?.title ? `“${r.duplicate.existing.title}”` : r.duplicate.existing?.path} · {r.duplicate.by}
+                      </span>
+                      <label style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontWeight: 600, color: "var(--fg)" }}>
+                        <input type="checkbox" checked={r.replace} onChange={(e) => updateRow(i, { replace: e.target.checked })} />
+                        Replace anyway
+                      </label>
+                    </div>
+                  )}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
                     <select value={r.mdm_vendor} onChange={(e) => updateRow(i, { mdm_vendor: e.target.value, product: "" })} style={miniField}>
                       <option value="">Vendor —</option>

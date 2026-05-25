@@ -10,6 +10,7 @@ use App\Models\Chunk;
 use App\Models\Source;
 use App\Services\Kb\Classifier;
 use App\Services\Kb\DocumentParser;
+use App\Services\Kb\DuplicateChecker;
 use App\Services\Kb\UploadTagger;
 use App\Services\Kb\UrlFetcher;
 use App\Services\Taxonomy\Taxonomy;
@@ -24,7 +25,7 @@ class UploadController extends Controller
      * excerpt and ask Claude to suggest vendor/product/subject (proposing a new subject when none
      * fits) for a human confirm step. Ingests nothing — confirmed tags come back via store().
      */
-    public function classify(Request $request, Classifier $classifier, DocumentParser $parser, UrlFetcher $urlFetcher)
+    public function classify(Request $request, Classifier $classifier, DocumentParser $parser, UrlFetcher $urlFetcher, DuplicateChecker $dupes)
     {
         abort_unless(
             $request->user()?->hasAnyRole(['Steward', 'Admin']),
@@ -33,11 +34,12 @@ class UploadController extends Controller
         );
 
         $ext = 'extensions:'.implode(',', config('mdm.uploads.extensions', []));
+        $maxFiles = (int) config('mdm.uploads.max_files', 20);
         $request->validate([
-            'files' => ['nullable', 'array'],
+            'files' => ['nullable', 'array', 'max:'.$maxFiles],
             'files.*' => ['file', 'max:131072', $ext],
             'url' => ['nullable', 'url', 'max:2048'],
-        ]);
+        ], ['files.max' => "You can upload at most {$maxFiles} files at once."]);
 
         $out = [];
         foreach ($request->file('files') ?? [] as $file) {
@@ -47,7 +49,7 @@ class UploadController extends Controller
             } catch (\Throwable $e) {
                 $suggestion = $this->emptySuggestion($e->getMessage());
             }
-            $out[] = ['filename' => $name, 'suggestion' => $suggestion];
+            $out[] = ['filename' => $name, 'suggestion' => $suggestion, 'duplicate' => $dupes->check($file)];
         }
 
         if ($url = $request->input('url')) {
@@ -72,7 +74,7 @@ class UploadController extends Controller
      * ingestion. Tags may be applied per file via a `meta` map (filename => tags) and to the URL
      * via `url_meta` (both from the classify step), or globally via top-level fields.
      */
-    public function store(Request $request, UploadTagger $tagger)
+    public function store(Request $request, UploadTagger $tagger, DuplicateChecker $dupes)
     {
         abort_unless(
             $request->user()?->hasAnyRole(['Steward', 'Admin']),
@@ -91,8 +93,9 @@ class UploadController extends Controller
 
         $dims = Taxonomy::dimensions();
         $ext = 'extensions:'.implode(',', config('mdm.uploads.extensions', []));
+        $maxFiles = (int) config('mdm.uploads.max_files', 20);
         $data = $request->validate([
-            'files' => ['required_without_all:file,url', 'array'],
+            'files' => ['required_without_all:file,url', 'array', 'max:'.$maxFiles],
             'files.*' => ['file', 'max:131072', $ext],
             'file' => ['required_without_all:files,url', 'file', 'max:131072', $ext],
             'url' => ['required_without_all:files,file', 'url', 'max:2048'],
@@ -103,7 +106,7 @@ class UploadController extends Controller
             'scope' => ['nullable', Rule::in(['vendor-specific', 'neutral'])],
             'product' => ['nullable', 'string', 'max:128'],
             'product_version' => ['nullable', 'string', 'max:64'],
-        ]);
+        ], ['files.max' => "You can upload at most {$maxFiles} files at once."]);
 
         $root = rtrim(config('mdm.kb_path'), '/');
         $category = $data['category'] ?? null;
@@ -117,6 +120,15 @@ class UploadController extends Controller
 
         foreach ($uploaded as $original) {
             $origName = $original->getClientOriginalName();
+
+            // Skip files already in the KB unless the steward explicitly chose to replace this one
+            // (per-file `replace` flag from the review step, or a top-level `replace` for all).
+            $replace = $request->boolean('replace') || (bool) ($perFile[$origName]['replace'] ?? false);
+            if (! $replace && ($dup = $dupes->check($original))['duplicate']) {
+                $results[] = ['name' => $origName, 'status' => 'duplicate', 'by' => $dup['by'], 'existing' => $dup['existing']];
+                continue;
+            }
+
             $overrides = isset($perFile[$origName]) && is_array($perFile[$origName])
                 ? $tagger->buildOverrides($tagger->coerceTags($perFile[$origName]), $dims)
                 : $global;
@@ -150,11 +162,15 @@ class UploadController extends Controller
             $results[] = ['path' => $urlRel, 'url' => $data['url'], 'status' => 'queued'];
         }
 
-        AuditLog::record('source.uploaded', ['count' => count($results), 'per_file' => ! empty($perFile) || (bool) $urlMeta]);
+        $queued = count(array_filter($results, fn ($r) => ($r['status'] ?? '') === 'queued'));
+        $skipped = count(array_filter($results, fn ($r) => ($r['status'] ?? '') === 'duplicate'));
+
+        AuditLog::record('source.uploaded', ['count' => $queued, 'duplicates' => $skipped, 'per_file' => ! empty($perFile) || (bool) $urlMeta]);
 
         return response()->json([
             'ok' => true,
-            'queued' => count($results),
+            'queued' => $queued,
+            'skipped' => $skipped,
             'files' => $results,
         ], 201);
     }

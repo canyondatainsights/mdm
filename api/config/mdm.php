@@ -88,6 +88,8 @@ return [
     // as UTF-8 text (docs + example scripts/code, so .sql/.py/etc. ingest, retrieve, and cite
     // like any document). Extend to accept more script/code types.
     'uploads' => [
+        // Max files accepted in a single upload request (guards against accidental bulk dumps).
+        'max_files' => (int) env('UPLOAD_MAX_FILES', 20),
         'extensions' => [
             'pdf', 'md', 'markdown', 'txt',
             'sql', 'py', 'json', 'yaml', 'yml', 'xml', 'js', 'ts', 'tsx', 'jsx',
