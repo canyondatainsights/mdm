@@ -27,6 +27,7 @@ class MetaController extends Controller
             'chunks' => $t['chunks'],
             'by_vendor' => $rows($stats->byVendor(), 'vendor'),
             'by_platform' => $rows($stats->byPlatform(), 'platform'),
+            'by_domain' => $rows($stats->byDomain(), 'domain'),
         ];
     }
 }
