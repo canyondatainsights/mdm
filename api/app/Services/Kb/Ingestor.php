@@ -54,8 +54,24 @@ class Ingestor
             return ['path' => $rel, 'status' => 'unsupported', 'chunks' => 0];
         }
 
+        // Strip invalid UTF-8 byte sequences (and NUL bytes Postgres rejects) so nothing downstream —
+        // the on-disk write, chunk content, the embeddings json_encode, or API/SSE responses — chokes
+        // on malformed bytes from a crawled page or PDF (the cause of the 125 failed-job crashes).
+        $parsed['body'] = $this->scrubUtf8($parsed['body']);
+        $parsed['title'] = $this->scrubUtf8((string) $parsed['title']);
+
         $hash = md5($parsed['body']);
         $meta = Metadata::resolve($rel, $parsed['front_matter'], $parsed['body'], $overrides);
+
+        // Clamp metadata strings to their column widths so an over-long derived value can't abort the
+        // insert ("value too long for type").
+        $meta['title'] = mb_substr((string) ($meta['title'] ?? $parsed['title']), 0, 255);
+        if (! empty($meta['product'])) {
+            $meta['product'] = mb_substr((string) $meta['product'], 0, 128);
+        }
+        if (! empty($meta['product_version'])) {
+            $meta['product_version'] = mb_substr((string) $meta['product_version'], 0, 64);
+        }
         $section = $this->section($rel);
 
         $wikiPageId = null;
@@ -137,7 +153,7 @@ class Ingestor
                     'source_path' => $rel,
                     'wiki_page_id' => $wikiPageId,
                     'source_id' => $sourceId,
-                    'anchor' => $c['anchor'],
+                    'anchor' => mb_substr((string) $c['anchor'], 0, 512),
                     'chunk_index' => $i,
                     'content' => $c['content'],
                     'token_count' => $c['token_count'],
@@ -156,6 +172,22 @@ class Ingestor
         });
 
         return ['path' => $rel, 'status' => 'indexed', 'chunks' => count($chunks)];
+    }
+
+    /**
+     * Make a string safe for json_encode + Postgres text: drop invalid UTF-8 byte sequences and the
+     * NUL bytes Postgres rejects. Cheap no-op for already-valid text.
+     */
+    private function scrubUtf8(string $s): string
+    {
+        if ($s === '') {
+            return $s;
+        }
+        if (! mb_check_encoding($s, 'UTF-8')) {
+            $s = function_exists('mb_scrub') ? mb_scrub($s, 'UTF-8') : (string) @iconv('UTF-8', 'UTF-8//IGNORE', $s);
+        }
+
+        return str_replace("\0", '', $s);
     }
 
     /** @return string[] absolute file paths */
