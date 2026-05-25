@@ -72,9 +72,9 @@ export function BrowseModal({ view, user, onClose, onOpenSource, onOpenUpload }:
             ))}
           </div>
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "8px 0" }}>Chunks by MDM vendor</div>
-          {stats.by_vendor.map((r) => <Bar key={r.vendor} label={r.vendor} value={r.chunks} max={stats.chunks} />)}
+          {stats.by_vendor.map((r) => <Bar key={r.vendor} label={cap(r.vendor)} value={r.chunks} max={stats.chunks} />)}
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "14px 0 8px" }}>Chunks by data platform</div>
-          {stats.by_platform.map((r) => <Bar key={r.platform} label={r.platform} value={r.chunks} max={stats.chunks} />)}
+          {stats.by_platform.map((r) => <Bar key={r.platform} label={cap(r.platform)} value={r.chunks} max={stats.chunks} />)}
           <div style={{ fontSize: 11, fontWeight: 600, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "14px 0 8px" }}>Chunks by subject / domain</div>
           {stats.by_domain.map((r) => <Bar key={r.domain} label={cap(r.domain)} value={r.chunks} max={stats.chunks} />)}
         </div>
