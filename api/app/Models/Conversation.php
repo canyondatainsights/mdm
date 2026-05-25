@@ -10,7 +10,7 @@ class Conversation extends Model
 {
     protected $fillable = [
         'user_id', 'title', 'mdm_vendor', 'data_platform',
-        'financial_model', 'domains', 'extensions', 'pii_redacted', 'pinned',
+        'financial_model', 'domains', 'extensions', 'pii_redacted', 'pinned', 'share_token',
     ];
 
     protected $casts = [

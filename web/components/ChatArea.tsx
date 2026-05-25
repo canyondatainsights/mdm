@@ -137,12 +137,12 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
 
 export function ChatArea({
   conversation, initialMessages, onOpenSource, onToggleSidebar, sidebarCollapsed,
-  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach,
+  onToggleInspector, inspectorOpen, onChanged, onNeedKey, onNew, onAttach, onShare,
 }: {
   conversation: Conversation | null; initialMessages: Message[];
   onOpenSource: (path: string) => void; onToggleSidebar: () => void; sidebarCollapsed: boolean;
   onToggleInspector: () => void; inspectorOpen: boolean; onChanged: () => void; onNeedKey: () => void; onNew: () => void;
-  onAttach?: () => void;
+  onAttach?: () => void; onShare?: (c: Conversation) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -235,6 +235,7 @@ export function ChatArea({
             <HierPill key={d} level={3} dot={false} tone={subjectTone(d, 2)} label={cap(d)} />
           ))}
           <div style={{ width: 1, height: 18, background: "var(--border)", margin: "0 4px" }} />
+          {onShare && <IconButton icon="share" label="Share conversation" onClick={() => onShare(conversation)} />}
           <IconButton icon="panel" label="Toggle sources panel" onClick={onToggleInspector} active={inspectorOpen} />
         </div>
       </div>

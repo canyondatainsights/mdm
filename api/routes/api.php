@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::get('/meta/dimensions', [MetaController::class, 'dimensions']);
+Route::get('/share/{token}', [ConversationController::class, 'shared']); // public read-only transcript
 
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
@@ -26,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversations', [ConversationController::class, 'store']);
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);
     Route::patch('/conversations/{conversation}', [ConversationController::class, 'update']);
+    Route::post('/conversations/{conversation}/share', [ConversationController::class, 'share']);
+    Route::delete('/conversations/{conversation}/share', [ConversationController::class, 'unshare']);
     Route::get('/conversations/{conversation}/suggestions', [ConversationController::class, 'suggestions']);
     Route::delete('/conversations/{conversation}', [ConversationController::class, 'destroy']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'stream']);

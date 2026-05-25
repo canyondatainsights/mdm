@@ -65,6 +65,9 @@ export const api = {
   suggestions: (id: number) => req<{ questions: string[] }>(`/conversations/${id}/suggestions`),
   updateConversation: (id: number, body: { title?: string; pinned?: boolean }) =>
     req<Conversation>(`/conversations/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  shareConversation: (id: number) => req<{ token: string }>(`/conversations/${id}/share`, { method: "POST" }),
+  unshareConversation: (id: number) => req<{ ok: boolean }>(`/conversations/${id}/share`, { method: "DELETE" }),
+  sharedConversation: (token: string) => req<import("./types").SharedConversation>(`/share/${token}`),
   deleteConversation: (id: number) => req(`/conversations/${id}`, { method: "DELETE" }),
 
   // sources

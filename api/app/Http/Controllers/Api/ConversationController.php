@@ -96,12 +96,55 @@ class ConversationController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /** Mint (or return) a public share token for this conversation. Owner-only. */
+    public function share(Request $request, Conversation $conversation)
+    {
+        $this->authorizeOwner($request, $conversation);
+        if (! $conversation->share_token) {
+            $conversation->update(['share_token' => \Illuminate\Support\Str::random(40)]);
+        }
+
+        return ['token' => $conversation->share_token];
+    }
+
+    /** Revoke the share link. Owner-only. */
+    public function unshare(Request $request, Conversation $conversation)
+    {
+        $this->authorizeOwner($request, $conversation);
+        $conversation->update(['share_token' => null]);
+
+        return ['ok' => true];
+    }
+
+    /** Public read-only transcript by share token (no auth). */
+    public function shared(string $token)
+    {
+        $c = Conversation::where('share_token', $token)->firstOrFail();
+
+        return [
+            'title' => $c->title,
+            'mdm_vendor' => $c->mdm_vendor,
+            'data_platform' => $c->data_platform,
+            'financial_model' => $c->financial_model,
+            'domains' => $c->domains,
+            'extensions' => $c->extensions,
+            'messages' => $c->messages()->orderBy('id')->get()->map(fn ($m) => [
+                'id' => $m->id,
+                'role' => $m->role,
+                'content' => $m->content,
+                'citations' => $m->citations,
+                'confidence' => $m->confidence,
+            ]),
+        ];
+    }
+
     private function summary(Conversation $c): array
     {
         return [
             'id' => $c->id,
             'title' => $c->title,
             'pinned' => $c->pinned,
+            'shared' => (bool) $c->share_token,
             'mdm_vendor' => $c->mdm_vendor,
             'data_platform' => $c->data_platform,
             'financial_model' => $c->financial_model,

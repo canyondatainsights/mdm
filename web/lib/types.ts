@@ -44,7 +44,18 @@ export interface Conversation {
   domains: string[];
   extensions?: string[] | null;
   pii_redacted: boolean;
+  shared?: boolean;
   updated_at: string;
+}
+
+export interface SharedConversation {
+  title: string;
+  mdm_vendor: string | null;
+  data_platform: string | null;
+  financial_model: string | null;
+  domains: string[];
+  extensions?: string[] | null;
+  messages: Message[];
 }
 
 export interface Citation {

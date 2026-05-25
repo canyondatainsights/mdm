@@ -7,6 +7,7 @@ import { BrowseModal } from "@/components/BrowseModal";
 import { ChatArea } from "@/components/ChatArea";
 import { Inspector } from "@/components/Inspector";
 import { Login } from "@/components/Login";
+import { ShareModal } from "@/components/ShareModal";
 import { Sidebar } from "@/components/Sidebar";
 import { StackLockModal } from "@/components/StackLockModal";
 // Claude API key + model are managed in the admin panel (AI Settings), not the end-user app.
@@ -146,6 +147,7 @@ export default function Home() {
           onNeedKey={() => {}}
           onNew={() => setModal("stacklock")}
           onAttach={openUpload}
+          onShare={setShareTarget}
         />
       )}
 
@@ -156,6 +158,7 @@ export default function Home() {
         <BrowseModal view={browseView} user={user} onClose={() => { setModal(null); setNavView("chat"); }} onOpenSource={openSourceInInspector} onOpenUpload={openUpload} />
       )}
       {modal === "upload" && <UploadModal onClose={() => setModal(null)} />}
+      {shareTarget && <ShareModal conversation={shareTarget} onClose={() => setShareTarget(null)} onChanged={refreshConversations} />}
     </div>
   );
 }
