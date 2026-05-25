@@ -35,7 +35,7 @@ class UrlFetcher
         $html = $response->body();
 
         $result = [
-            'title' => $this->extractTitle($html) ?: $this->titleFromUrl($url),
+            'title' => $this->extractTitle($html) ?: self::titleFromUrl($url),
             'text' => $this->htmlToText($html),
         ];
         if ($withMarkdown) {
@@ -217,7 +217,7 @@ class UrlFetcher
     }
 
     /** A readable title from the URL path leaf (fallback when the page has no usable <title>). */
-    private function titleFromUrl(string $url): string
+    public static function titleFromUrl(string $url): string
     {
         $host = parse_url($url, PHP_URL_HOST) ?: 'Reference';
         $path = trim((string) parse_url($url, PHP_URL_PATH), '/');

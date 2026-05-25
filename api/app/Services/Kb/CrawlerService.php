@@ -103,7 +103,7 @@ class CrawlerService
             $slug = Str::slug(trim((string) parse_url($url, PHP_URL_PATH), '/')) ?: ('p-'.substr(md5($url), 0, 10));
             $rel = ltrim(str_replace($root, '', $dir.'/'.$slug.'.md'), '/');
 
-            Source::markQueued($rel, $overrides)->update(['approved' => true, 'doc_type' => 'URL', 'owner' => $url]);
+            Source::markQueued($rel, $overrides)->update(['approved' => true, 'doc_type' => 'URL', 'owner' => $url, 'title' => UrlFetcher::titleFromUrl($url)]);
             $job = IngestUrlSource::dispatch($url, $rel, $root, $overrides, null);
             if ($sleep) {
                 $job->delay(now()->addSeconds($queued * $sleep));
