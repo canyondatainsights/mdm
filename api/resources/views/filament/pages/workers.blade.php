@@ -1,7 +1,8 @@
 <x-filament-panels::page>
-    <div wire:poll.5s>
+    @php($pending = $this->pending())
+    {{-- Poll only while jobs are queued; an idle queue doesn't change. --}}
+    <div @if ($pending > 0) wire:poll.5s @endif>
         @php($paused = $this->isPaused())
-        @php($pending = $this->pending())
         @php($failed = $this->failed())
         <x-filament::section icon="heroicon-o-server-stack">
             <x-slot name="heading">Queue status</x-slot>

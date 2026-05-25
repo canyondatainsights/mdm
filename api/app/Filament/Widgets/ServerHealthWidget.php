@@ -16,7 +16,7 @@ class ServerHealthWidget extends StatsOverviewWidget
 
     protected ?string $heading = 'Server health';
 
-    protected ?string $pollingInterval = '30s';
+    protected ?string $pollingInterval = '60s';
 
     protected function getStats(): array
     {

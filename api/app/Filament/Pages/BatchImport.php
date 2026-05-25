@@ -9,6 +9,7 @@ use App\Models\Source;
 use App\Services\Kb\UploadTagger;
 use App\Services\Taxonomy\Taxonomy;
 use BackedEnum;
+use Illuminate\Support\Facades\DB;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
@@ -120,6 +121,12 @@ class BatchImport extends Page
                 ->modalDescription('Adds every proposed subject from the latest batch to the taxonomy and retags the documents that proposed them. No extra LLM calls.')
                 ->action(fn () => $this->approveProposedSubjects()),
         ];
+    }
+
+    /** Whether a batch is still working — drives polling only while active (idle pages don't poll). */
+    public function hasActiveBatch(): bool
+    {
+        return DB::table('jobs')->exists();
     }
 
     /** Live progress for each recent batch still worth showing (running, or finished WITH failures). */

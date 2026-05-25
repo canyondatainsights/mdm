@@ -9,8 +9,8 @@
         </div>
     </form>
 
-    {{-- Progress + review (auto-refreshes) --}}
-    <div wire:poll.5s class="space-y-6">
+    {{-- Progress + review (auto-refreshes only while a batch is actively running). --}}
+    <div @if ($this->hasActiveBatch()) wire:poll.5s @endif class="space-y-6">
         @php($batches = $this->recentBatches())
         @if ($batches->isNotEmpty())
             <x-filament::section icon="heroicon-o-chart-bar">
