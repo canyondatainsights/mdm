@@ -216,6 +216,48 @@ class DocumentParser
         return $this->parse($absPath)['title'] ?? null;
     }
 
+    /**
+     * The product descriptor from a doc's brand banner (e.g. "Cloud Data Integration") with the
+     * vendor word + ® stripped — used to disambiguate cross-product duplicate titles.
+     */
+    public function coverProduct(string $absPath, ?string $vendor = null): ?string
+    {
+        if (strtolower(pathinfo($absPath, PATHINFO_EXTENSION)) !== 'pdf') {
+            return null;
+        }
+        $text = $this->pdftotextHead($absPath, 2);
+        if (! $text) {
+            return null;
+        }
+        $lines = array_values(array_filter(
+            array_map(fn ($l) => trim((string) preg_replace('/\s+/', ' ', $l)), preg_split('/\R/', $text) ?: []),
+            fn ($l) => $l !== '',
+        ));
+
+        foreach (array_slice($lines, 0, 4) as $idx => $l) {
+            if (! preg_match('/[®™]/u', $l)) {
+                continue;
+            }
+            $banner = $l;
+            // Join a single-word banner wrap (e.g. "Cloud", "Catalog") — never a date or multi-word title.
+            $next = $lines[$idx + 1] ?? '';
+            if ($next !== '' && ! preg_match('/[®™]/u', $next) && str_word_count($next) === 1 && mb_strlen($next) <= 14
+                && ! preg_match('/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d)/i', $next)) {
+                $banner .= ' '.$next;
+            }
+            $p = trim((string) preg_replace('/[®™©]/u', '', $banner));
+            if ($vendor && stripos($p, (string) $vendor) === 0) {
+                $p = trim(mb_substr($p, mb_strlen((string) $vendor)));   // drop the leading vendor name
+            } else {
+                $p = trim((string) preg_replace('/^\S+\s+/', '', $p));   // else drop the leading brand word
+            }
+
+            return $p !== '' ? $p : null;
+        }
+
+        return null;
+    }
+
     /** First few pages of embedded PDF text — cheap signal for classification. */
     private function pdftotextHead(string $absPath, int $pages = 3): ?string
     {
