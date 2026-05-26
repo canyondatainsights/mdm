@@ -64,9 +64,15 @@ The main product logo is **two chat bubbles together** — a large coral bubble 
 
 Implemented as `<SidecarMarkBuddy/>` in `design/ui.jsx`.
 
-### Mark — Friendly Face *(assistant avatar)*
+### Mark — Friendly Face *(assistant avatar — animated)*
 
 A single coral bubble with eyes + smile — the personable, character-driven variant. Used for the **assistant avatar** in chat threads and anywhere the assistant has a "voice."
+
+The component is **animated** via CSS keyframes (no GIF — scalable, crisp at any size, ~1 KB):
+- **Breathe** — gentle 1.5% vertical bob, 3.8s ease-in-out loop
+- **Blink** — both eyes scale Y to ~6% briefly every 5.2s
+- **Smile lift** — small dip on each blink so it reads as a real expression
+- Respects `prefers-reduced-motion` (animations disabled for users who've opted out)
 
 ```jsx
 <svg viewBox="0 0 100 100" fill="none">
@@ -82,7 +88,9 @@ A single coral bubble with eyes + smile — the personable, character-driven var
 </svg>
 ```
 
-Implemented as `<SidecarMarkFace/>` in `design/ui.jsx`. **Important: don't substitute one mark for the other** — Buddy Duo is the brand mark, Face is the assistant identity. They are not interchangeable.
+Implementation note: each eye lives in its own `<g>` with `transform-box: fill-box` and `transform-origin` set to that eye's center, so the blink scales **in place** rather than collapsing toward the SVG origin.
+
+Component lives in `design/ui.jsx` as `<SidecarMarkFace size={26} animated={true} />`. Pass `animated={false}` to freeze it (useful for screenshots / print). **Important: don't substitute one mark for the other** — Buddy Duo is the brand mark, Face is the assistant identity. They are not interchangeable.
 
 ### Slogan
 

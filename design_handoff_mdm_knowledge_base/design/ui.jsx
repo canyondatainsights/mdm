@@ -117,16 +117,56 @@ const SidecarMarkBuddy = ({ size = 28, big = '#D97757', small = '#1F1B17', dotCo
 };
 
 // Concept 4 — Friendly Face: assistant avatar
-const SidecarMarkFace = ({ size = 24, bubble = '#D97757', feature = '#1F1B17', whites = '#F7F2EC', style }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={style} aria-label="Sidecar Assistant">
-    <path d="M 14 8 L 86 8 Q 96 8 96 18 L 96 66 Q 96 76 86 76 L 52 76 L 38 94 L 42 76 L 14 76 Q 4 76 4 66 L 4 18 Q 4 8 14 8 Z" fill={bubble}/>
-    <circle cx="36" cy="36" r="6.5" fill={whites}/>
-    <circle cx="64" cy="36" r="6.5" fill={whites}/>
-    <circle cx="38" cy="38" r="3.2" fill={feature}/>
-    <circle cx="66" cy="38" r="3.2" fill={feature}/>
-    <path d="M 34 54 Q 50 66 66 54" stroke={feature} strokeWidth="4.5" strokeLinecap="round" fill="none"/>
-  </svg>
-);
+// Concept 4 — Friendly Face: assistant avatar (animated: breathe + blink + smile bounce)
+const SidecarMarkFace = ({ size = 24, bubble = '#D97757', feature = '#1F1B17', whites = '#F7F2EC', animated = true, style }) => {
+  const rawId = React.useId();
+  const id = 'a' + rawId.replace(/[^a-zA-Z0-9]/g, '');
+  const a = animated;
+  return (
+    <span style={{ display: 'inline-block', lineHeight: 0, ...style }}>
+      <style>{`
+        @keyframes scf-breathe-${id} { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1.5%) } }
+        @keyframes scf-blink-${id} {
+          0%, 92%, 100% { transform: scaleY(1); }
+          94%, 97%      { transform: scaleY(0.06); }
+        }
+        @keyframes scf-smile-${id} {
+          0%, 90%, 100% { transform: translateY(0); }
+          94%, 97%      { transform: translateY(2%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .scf-${id} * { animation: none !important; }
+        }
+      `}</style>
+      <svg
+        width={size} height={size} viewBox="0 0 100 100" fill="none"
+        aria-label="Sidecar Assistant"
+        className={`scf-${id}`}
+        style={{ overflow: 'visible' }}
+      >
+        <g style={a ? { animation: `scf-breathe-${id} 3.8s ease-in-out infinite`, transformOrigin: '50% 60%' } : undefined}>
+          {/* bubble */}
+          <path d="M 14 8 L 86 8 Q 96 8 96 18 L 96 66 Q 96 76 86 76 L 52 76 L 38 94 L 42 76 L 14 76 Q 4 76 4 66 L 4 18 Q 4 8 14 8 Z" fill={bubble}/>
+          {/* eyes — each wrapped in its own <g> with per-eye transform-origin to blink in place */}
+          <g style={a ? { animation: `scf-blink-${id} 5.2s ease-in-out infinite`, transformBox: 'fill-box', transformOrigin: '36px 36px' } : undefined}>
+            <circle cx="36" cy="36" r="6.5" fill={whites}/>
+            <circle cx="38" cy="38" r="3.2" fill={feature}/>
+          </g>
+          <g style={a ? { animation: `scf-blink-${id} 5.2s ease-in-out infinite`, transformBox: 'fill-box', transformOrigin: '64px 36px' } : undefined}>
+            <circle cx="64" cy="36" r="6.5" fill={whites}/>
+            <circle cx="66" cy="38" r="3.2" fill={feature}/>
+          </g>
+          {/* smile — gently dips during blink so it reads as a real expression */}
+          <path
+            d="M 34 54 Q 50 66 66 54"
+            stroke={feature} strokeWidth="4.5" strokeLinecap="round" fill="none"
+            style={a ? { animation: `scf-smile-${id} 5.2s ease-in-out infinite`, transformBox: 'fill-box', transformOrigin: '50px 60px' } : undefined}
+          />
+        </g>
+      </svg>
+    </span>
+  );
+};
 
 // Back-compat default — points to Buddy now
 const SidecarMark = SidecarMarkBuddy;
