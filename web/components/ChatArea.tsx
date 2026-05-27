@@ -5,7 +5,7 @@ import { Icon } from "@/lib/icons";
 import type { Citation, Conversation, Message } from "@/lib/types";
 import { Component, type ReactNode, useEffect, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
-import { SidecarFace } from "./Logo";
+import { SidecarFace, SidecarWordmark } from "./Logo";
 import { DocTypeBadge, HierPill, IconButton, Pill, subjectTone, vendorTone } from "./ui";
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, " ") : "—");
@@ -111,7 +111,7 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em" }}>Sidecar</span>
+          <SidecarWordmark size={14} />
           {confidence && <Pill tone={confidence === "high" ? "ok" : confidence === "low" ? "warn" : "neutral"} size="xs" icon={confidence === "high" ? "check" : undefined}>{cap(confidence)} confidence</Pill>}
         </div>
         {text ? (
