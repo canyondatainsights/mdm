@@ -23,19 +23,36 @@ export function SidecarMark({ size = 26 }: { size?: number }) {
   );
 }
 
-/** "Friendly Face" — single coral bubble with eyes + smile. The assistant's avatar. */
-export function SidecarFace({ size = 28 }: { size?: number }) {
+/**
+ * "Friendly Face" — single coral bubble with eyes + smile. The assistant's avatar.
+ * - `thinking` (while the assistant streams): the smile becomes 3 bouncing typing-dots, the eyes
+ *   blink faster, and the bubble gently bobs.
+ * - `idle`: a slow occasional blink (gives the focal landing face some life).
+ * All motion is CSS (see globals.css .sc-face*) and disabled under prefers-reduced-motion.
+ */
+export function SidecarFace({ size = 28, thinking = false, idle = false }: { size?: number; thinking?: boolean; idle?: boolean }) {
+  const cls = ["sc-face", thinking ? "sc-face--thinking" : idle ? "sc-face--idle" : ""].filter(Boolean).join(" ");
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" role="img" aria-label="Sidecar" style={{ display: "block", flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" role="img" aria-label="Sidecar" className={cls} style={{ display: "block", flexShrink: 0 }}>
       <path
         d="M 14 8 L 86 8 Q 96 8 96 18 L 96 66 Q 96 76 86 76 L 52 76 L 38 94 L 42 76 L 14 76 Q 4 76 4 66 L 4 18 Q 4 8 14 8 Z"
         fill="var(--accent)"
       />
-      <circle cx="36" cy="36" r="6.5" fill="var(--bg)" />
-      <circle cx="64" cy="36" r="6.5" fill="var(--bg)" />
-      <circle cx="38" cy="38" r="3.2" fill="var(--fg)" />
-      <circle cx="66" cy="38" r="3.2" fill="var(--fg)" />
-      <path d="M 34 54 Q 50 66 66 54" stroke="var(--fg)" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      <g className="sc-face__eyes">
+        <circle cx="36" cy="36" r="6.5" fill="var(--bg)" />
+        <circle cx="64" cy="36" r="6.5" fill="var(--bg)" />
+        <circle cx="38" cy="38" r="3.2" fill="var(--fg)" />
+        <circle cx="66" cy="38" r="3.2" fill="var(--fg)" />
+      </g>
+      {thinking ? (
+        <g className="sc-face__dots" fill="var(--fg)" aria-label="thinking">
+          <circle cx="34" cy="56" r="3.6" />
+          <circle cx="50" cy="56" r="3.6" />
+          <circle cx="66" cy="56" r="3.6" />
+        </g>
+      ) : (
+        <path d="M 34 54 Q 50 66 66 54" stroke="var(--fg)" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      )}
     </svg>
   );
 }

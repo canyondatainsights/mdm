@@ -103,8 +103,11 @@ function AssistantMessage({ text, citations, confidence, streaming, onOpenSource
   };
   return (
     <div style={{ display: "flex", padding: "12px 0", gap: 12 }}>
-      <div style={{ flexShrink: 0, paddingTop: 1 }}>
-        <SidecarFace size={28} />
+      {/* While streaming, pin the avatar so the thinking animation stays visible as text scrolls past. */}
+      <div style={streaming
+        ? { flexShrink: 0, paddingTop: 1, position: "sticky", top: 12, alignSelf: "flex-start", zIndex: 1 }
+        : { flexShrink: 0, paddingTop: 1 }}>
+        <SidecarFace size={28} thinking={streaming} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -214,7 +217,7 @@ export function ChatArea({
   if (!conversation) {
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "var(--bg)" }}>
-        <SidecarFace size={48} />
+        <SidecarFace size={48} idle />
         <div style={{ fontSize: 15, fontWeight: 600 }}>Start a conversation</div>
         <div style={{ fontSize: 13, color: "var(--fg-3)", maxWidth: 360, textAlign: "center" }}>Lock a technology stack first — answers stay within it and never mix vendors.</div>
         <button onClick={onNew} style={{ padding: "9px 16px", borderRadius: 9, color: "white", border: "1px solid oklch(0.48 0.18 33)", background: "linear-gradient(180deg, oklch(0.66 0.17 38), oklch(0.56 0.18 33))", fontSize: 13, fontWeight: 600 }}>New conversation</button>
