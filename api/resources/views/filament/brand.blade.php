@@ -9,5 +9,8 @@
         <circle cx="104" cy="74" r="4.5" fill="#fff"/>
         <circle cx="120" cy="74" r="4.5" fill="#fff"/>
     </svg>
-    <span style="font-weight:700;font-size:1.15rem;letter-spacing:-.01em;color:currentColor;">Sidecar</span>
+    {{-- Wordmark: dotless-i (U+0131) carrying a cobalt dot — the "smallest sidecar", themed. --}}
+    <span style="font-weight:700;font-size:1.15rem;letter-spacing:-.01em;color:currentColor;display:inline-flex;align-items:baseline;">
+        <span>S</span><span style="position:relative;display:inline-block;">&#x131;<span aria-hidden="true" style="position:absolute;top:-.02em;left:50%;transform:translateX(-50%);width:.2em;height:.2em;border-radius:50%;background:#2447d6;"></span></span><span>decar</span>
+    </span>
 </div>
